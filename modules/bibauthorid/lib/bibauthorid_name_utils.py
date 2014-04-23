@@ -23,16 +23,20 @@ bibauthorid_name_utils
 '''
 
 import re
+import regex  # We have to use this one to support unicode codepoint properties.
 import invenio.bibauthorid_config as bconfig
 from invenio.bibauthorid_string_utils import string_partition
 from copy import deepcopy
 
-from invenio.textutils import translate_to_ascii
+from invenio.bibauthorid_general_utils import memoized
+
 
 from invenio.bibauthorid_general_utils import name_comparison_print
 
 from math import sqrt
+from invenio.textutils import translate_to_ascii as original_translate_to_ascii
 
+translate_to_ascii = memoized(original_translate_to_ascii)
 SQRT2 = sqrt(2)
 
 try:
@@ -41,41 +45,48 @@ try:
 except ImportError:
     NO_CFG_ETCDIR = True
 
-try:
-    from editdist import distance
-except ImportError:
-    try:
-        from Levenshtein import distance
-    except ImportError:
-        name_comparison_print("Levenshtein Module not available!")
-        def distance(s1, s2):
-            d = {}
-            lenstr1 = len(s1)
-            lenstr2 = len(s2)
-            for i in xrange(-1, lenstr1 + 1):
-                d[(i, -1)] = i + 1
-            for j in xrange(-1, lenstr2 + 1):
-                d[(-1, j)] = j + 1
 
-            for i in xrange(0, lenstr1):
-                for j in xrange(0, lenstr2):
-                    if s1[i] == s2[j]:
-                        cost = 0
-                    else:
-                        cost = 1
-                    d[(i, j)] = min(
-                                   d[(i - 1, j)] + 1, # deletion
-                                   d[(i, j - 1)] + 1, # insertion
-                                   d[(i - 1, j - 1)] + cost, # substitution
-                                  )
-                    if i > 1 and j > 1 and s1[i] == s2[j - 1] and s1[i - 1] == s2[j]:
-                        d[(i, j)] = min (d[(i, j)], d[i - 2, j - 2] + cost) # transposition
-            return d[lenstr1 - 1, lenstr2 - 1]
+from Levenshtein import distance
+#try:
+#    from Levenshtein import distance
+#except ImportError:
+#    name_comparison_print("Levenshtein Module not available!")
+#    def distance(s1, s2):
+#        d = {}
+#        lenstr1 = len(s1)
+#        lenstr2 = len(s2)
+#        for i in xrange(-1, lenstr1 + 1):
+#            d[(i, -1)] = i + 1
+#        for j in xrange(-1, lenstr2 + 1):
+#            d[(-1, j)] = j + 1
+#
+#        for i in xrange(0, lenstr1):
+#            for j in xrange(0, lenstr2):
+#                if s1[i] == s2[j]:
+#                    cost = 0
+#                else:
+#                    cost = 1
+#                d[(i, j)] = min(
+#                               d[(i - 1, j)] + 1, # deletion
+#                               d[(i, j - 1)] + 1, # insertion
+#                               d[(i - 1, j - 1)] + cost, # substitution
+#                              )
+#                if i > 1 and j > 1 and s1[i] == s2[j - 1] and s1[i - 1] == s2[j]:
+#                    d[(i, j)] = min (d[(i, j)], d[i - 2, j - 2] + cost) # transposition
+#        return d[lenstr1 - 1, lenstr2 - 1]
 
 artifact_removal = re.compile("[^a-zA-Z0-9]")
+surname_cleaning = re.compile("-([a-z])")
+name_additions_chars = re.compile("\([.]*[^\)]*\)")
+
+name_separators = bconfig.NAMES_SEPARATOR_CHARACTER_LIST
+if name_separators == "-1":
+    name_separators = ',;.=\-\(\)'
+substitution_regexp = re.compile('[%s]' % (name_separators))
 
 #Gender names and names variation files are loaded updon module import to increase performances
 
+@memoized
 def split_name_parts(name_string, delete_name_additions=True,
                      override_surname_sep='', return_all_lower=False):
     '''
@@ -105,13 +116,9 @@ def split_name_parts(name_string, delete_name_additions=True,
     else:
         surname_separators = ','
 
-    name_separators = bconfig.NAMES_SEPARATOR_CHARACTER_LIST
-
-    if name_separators == "-1":
-        name_separators = ',;.=\-\(\)'
 
     if delete_name_additions:
-        name_additions = re.findall('\([.]*[^\)]*\)', name_string)
+        name_additions = name_additions_chars.findall(name_string)
         for name_addition in name_additions:
             name_string = name_string.replace(name_addition, '')
 
@@ -124,22 +131,22 @@ def split_name_parts(name_string, delete_name_additions=True,
         if name_string.count(sep) >= 1:
             found_sep = sep
             surname, rest_of_name = string_partition(name_string, sep)[0::2]
-            surname = surname.strip().capitalize()
+            surname = surname.strip()
             # Fix for dashes
-            surname = re.sub('-([a-z])', lambda n:'-' + n.group(1).upper(), surname)
+            surname = surname_cleaning.sub(lambda n:'-' + n.group(1), surname)
             break
 
     if not found_sep:
         if name_string.count(" ") > 0:
             rest_of_name, surname = string_partition(name_string, ' ', direc='r')[0::2]
-            surname = surname.strip().capitalize()
+            surname = surname.strip()
             # Fix for dashes
-            surname = re.sub('-([a-z])', lambda n:'-' + n.group(1).upper(), surname)
+            surname = surname_cleaning.sub(lambda n:'-' + n.group(1), surname)
         else:
             surname = name_string
-            surname = surname.strip().capitalize()
+            surname = surname.strip()
             # Fix for dashes
-            surname = re.sub('-([a-z])', lambda n:'-' + n.group(1).upper(), surname)
+            surname = surname_cleaning.sub(lambda n:'-' + n.group(1), surname)
             if not return_all_lower:
                 return [surname, [], [], []]
             else:
@@ -148,7 +155,6 @@ def split_name_parts(name_string, delete_name_additions=True,
     if rest_of_name.count(","):
         rest_of_name = string_partition(rest_of_name, ",")[0]
 
-    substitution_regexp = re.compile('[%s]' % (name_separators))
     initials_names_list = substitution_regexp.sub(' ', rest_of_name).split()
     names = []
     initials = []
@@ -214,10 +220,107 @@ def create_normalized_name(splitted_name):
             name = name + ' ' + splitted_name[1][i].capitalize() + '.'
 
     return name
+  
+@memoized  
+def clean_string(string):
+
+    M_NAME_LOCALE_CHARACTER_MAPPING = {'ß': 'ss',
+                                   'ä': 'ae',
+                                   'ö': 'oe',
+                                   'ü': 'ue'}    
+    
+    string = _replace_content_in_parentheses(string, '')
+    string = _apply_character_mapping_to_name(string,
+                                              M_NAME_LOCALE_CHARACTER_MAPPING)
+    string =  _remove_special_characters_and_numbers(string)
+    string = translate_to_ascii(string)[0]
+    return string
+    
+
+@memoized
+def create_matchable_name(name, get_surname_words_length=False):
+
+    M_NAME_IGNORE_LIST = ['et al', 'et al.', 'Et al.']
+
+    M_NAME_SPECIAL_CHARACTER_MAPPING = {'-': ' ',
+                                        '.': ' ',
+                                        '\'': ''}
+
+    M_NAME_LOCALE_CHARACTER_MAPPING = {'ß': 'ss',
+                                       'ä': 'ae',
+                                       'ö': 'oe',
+                                       'ü': 'ue',
+                                       }
+
+    name = _replace_content_in_parentheses(name, '')
+
+    last_name, first_name = _split_by_first_occurence(name, ',')
+    if get_surname_words_length:
+        last_name_words = _get_number_of_words(last_name)
+
+    first_name_parts = first_name.split()
+
+    for index, first_name_part in enumerate(first_name_parts):
+        first_name_parts[index] = _remove_ignored_characters_for_name(first_name_part,
+                                                                      M_NAME_IGNORE_LIST)
+
+        if _is_unseperated_initials(first_name_parts[index]):
+            first_name_parts[index] = ' '.join(first_name_part)
+
+    full_name = ' '.join(first_name_parts + [last_name])
+
+    full_name = _apply_character_mapping_to_name(full_name,
+                                                 M_NAME_SPECIAL_CHARACTER_MAPPING)
+    full_name = _apply_character_mapping_to_name(full_name,
+                                                 M_NAME_LOCALE_CHARACTER_MAPPING)
+    full_name = _remove_special_characters_and_numbers(full_name)
+
+    ascii_full_name = translate_to_ascii(full_name)[0]
+    final_full_name = ' '.join(ascii_full_name.split()).lower()
+    if get_surname_words_length:
+        return (final_full_name, last_name_words)
+    return final_full_name
 
 
-create_indexable_name_artifact_removal_re = re.compile("[^a-zA-Z,\s]")
-def create_indexable_name(name_string):
+def _get_number_of_words(name):
+    return len([token for token in name.split()])
+
+def _split_by_first_occurence(name, delimeter):
+    name_parts = [token.strip() for token in name.split(delimeter, 1)]
+    if len(name_parts) == 1:
+        name_parts.append('')
+    return name_parts
+
+
+def _is_unseperated_initials(name):
+    return name.isalpha() and name.isupper() and len(name) == 2
+
+
+def _remove_ignored_characters_for_name(name, ignore_list):
+    for token_to_ignore in ignore_list:
+        name = name.replace(token_to_ignore, '')
+    return name
+
+parentheses_cleanup = re.compile(r'\([^)]*\)')
+def _replace_content_in_parentheses(content, replacement):
+    return parentheses_cleanup.sub(replacement, content)
+
+
+def _apply_character_mapping_to_name(name, mapping):
+    for character, replacement in mapping.iteritems():
+        name = name.replace(character, replacement)
+    return name
+
+
+special_chars_removal = regex.compile('[\p{P}\d]+', regex.UNICODE)
+# Notice that regex a different module than re.
+
+
+def _remove_special_characters_and_numbers(name):
+    return special_chars_removal.sub('', name)
+
+
+def create_indexable_name(splitted_name):
     '''
     Creates a normalized name from a given name array. A normalized name
     looks like "Lastname, Firstnames and Initials"
@@ -228,10 +331,6 @@ def create_indexable_name(name_string):
     @return: normalized name
     @rtype: string
     '''
-
-
-    name_string = create_indexable_name_artifact_removal_re.sub(' ',name_string)
-    splitted_name = split_name_parts(name_string)
 
     name = splitted_name[0]
 
@@ -283,37 +382,6 @@ def create_unified_name(name, reverse=False):
     return unified_name
 
 
-clean_name_string_re_whitespace = re.compile("[^a-zA-Z0-9,.\s]")
-clean_name_string_re =  re.compile("[^a-zA-Z0-9,.]")
-clean_name_string_whitespace_removal = re.compile("[\s]{2,100}")
-
-def clean_name_string(namestring, replacement=" ", keep_whitespace=True,
-                      trim_whitespaces=False):
-    '''
-    remove specific artifacts from the names in order to be able to
-    compare them. E.g. 't Hooft, G. and t'Hooft, G.
-
-    @param namestring: the string to be cleaned
-    @type namestring: string
-    '''
-#    artifact_removal = re.compile("['`\-\[\]\_\"]")
-    artifact_removal_re = None
-
-    if trim_whitespaces:
-        namestring.strip()
-
-    if keep_whitespace:
-        artifact_removal_re = clean_name_string_re_whitespace
-    else:
-        artifact_removal_re = clean_name_string_re
-
-
-    tmp = artifact_removal_re.sub(replacement, namestring)
-
-    tmp = clean_name_string_whitespace_removal.sub(" ", tmp).strip()
-
-    return tmp
-
 
 def soft_compare_names(origin_name, target_name):
     '''
@@ -341,12 +409,8 @@ def soft_compare_names(origin_name, target_name):
 
     orig_name = split_name_parts(oname.lower())
     targ_name = split_name_parts(tname.lower())
-    orig_name[0] = clean_name_string(orig_name[0],
-                                     replacement="",
-                                     keep_whitespace=False)
-    targ_name[0] = clean_name_string(targ_name[0],
-                                     replacement="",
-                                     keep_whitespace=False)
+    orig_name[0] = clean_string(orig_name[0])
+    targ_name[0] = clean_string(targ_name[0])
     if orig_name[0].lower() == targ_name[0].lower():
         score += 0.6
     else:
@@ -366,9 +430,9 @@ def soft_compare_names(origin_name, target_name):
         max_names = max(len(orig_name[2]), len(targ_name[2]))
         matching_n = 0
         if len(orig_name[2]) >= 1 and len(targ_name[2]) >= 1:
-            cleaned_targ_name = [clean_name_string(i, replacement="", keep_whitespace=False) for i in targ_name[2]]
+            cleaned_targ_name = [clean_string(i) for i in targ_name[2]]
             for i in orig_name[2]:
-                if clean_name_string(i, replacement="", keep_whitespace=False) in cleaned_targ_name:
+                if clean_string(i) in cleaned_targ_name:
                     matching_n += 1
 
         name_score = (matching_i + matching_n) * 0.4 / (max_names + max_initials)
@@ -434,8 +498,8 @@ def full_names_are_equal_composites(name1, name2, only_names=False):
 
     for oname_variation in oname_variations:
         for tname_variation in tname_variations:
-            oname = clean_name_string(oname_variation.lower(), "", False, True)
-            tname = clean_name_string(tname_variation.lower(), "", False, True)
+            oname = clean_string(oname_variation.lower())
+            tname = clean_string(tname_variation.lower())
 
             if oname == tname:
                 is_equal_composite = True
@@ -469,11 +533,11 @@ def full_names_are_equal_gender(name1, name2, gendernames, only_names=False):
     tgender = None
 #    oname = name1[2][0].lower()
 #    tname = name2[2][0].lower()
-#    oname = clean_name_string(oname, "", False, True)
-#    tname = clean_name_string(tname, "", False, True)
+#    oname = clean_string(oname)
+#    tname = clean_string(tname)
 
-    onames = [clean_name_string(n.lower(), "", False, True) for n in name1]
-    tnames = [clean_name_string(n.lower(), "", False, True) for n in name2]
+    onames = [clean_string(n.lower()) for n in name1]
+    tnames = [clean_string(n.lower()) for n in name2]
 
     for oname in onames:
         if oname in gendernames['boys']:
@@ -518,11 +582,11 @@ def names_are_synonymous(name1, name2, name_variations):
     @param name_variations: name variations list
     @type name_variations: list of lists
     '''
+    try:
+        return name1 == name2 or name_variations[name1] == name_variations[name2]
+    except KeyError:
+        return False
 
-    a = (name1 in nvar and name2 in nvar for nvar in name_variations)
-    if True in a:
-        return True
-    return False
 
 def full_names_are_synonymous(name1, name2, name_variations, only_names=False):
     '''
@@ -551,17 +615,18 @@ def full_names_are_synonymous(name1, name2, name_variations, only_names=False):
     for i in xrange(max_matches):
         matches.append(False)
 
-    for nvar in name_variations:
-        for i in xrange(max_matches):
-            oname = name1[i].lower()
-            tname = name2[i].lower()
-            oname = clean_name_string(oname, "", False, True)
-            tname = clean_name_string(tname, "", False, True)
+    for i in xrange(max_matches):
+        oname = name1[i].lower()
+        tname = name2[i].lower()
+        oname = clean_string(oname)
+        tname = clean_string(tname)
 
-            if (oname in nvar and tname in nvar) or oname == tname:
-                #name_comparison_print('      ', oname, ' and ', tname, ' are synonyms!')
+        try:
+            if oname == tname or name_variations[oname] == name_variations[tname]:
+            #name_comparison_print('      ', oname, ' and ', tname, ' are synonyms!')
                 matches[i] = True
-
+        except KeyError:
+            continue
         if sum(matches) == max_matches:
             names_are_synonymous_b = True
             break
@@ -602,9 +667,9 @@ def full_names_are_substrings(name1, name2, only_names=False):
 
     names_are_substrings_b = False
     for o in onames:
-        oname = clean_name_string(o.lower(), "", False, True)
+        oname = clean_string(o.lower())
         for t in tnames:
-            tname = clean_name_string(t.lower(), "", False, True)
+            tname = clean_string(t.lower())
             if (oname.startswith(tname)
                 or tname.startswith(oname)):
                 names_are_substrings_b = True
@@ -641,27 +706,33 @@ def _load_firstname_variations(filename=''):
 
     for l in fp.readlines():
         lr = r.sub("", l)
-        retval.append(set([clean_name_string(name.lower(), "", False, True)
+        retval.append(set([clean_string(name.lower())
                        for name in lr.split(";") if name]))
 
     fp.close()
 
-    return retval
+    ndict = dict()
+    for i, s in enumerate(retval):
+        for k in s:
+            ndict[k] = i
 
 
+    return ndict
+
+@memoized
 def surname_compatibility(sa, sb):
     name_comparison_print('|-- Comparing surnames: %s %s'% (sa,sb))
-    MAX_ALLOWED_SURNAME_DISTANCE_PERCENT = 0.33
-    sa = clean_name_string(sa, replacement='', keep_whitespace=False, trim_whitespaces=True)
-    sb = clean_name_string(sb, replacement='', keep_whitespace=False, trim_whitespaces=True)
+    MAX_ALLOWED_SURNAME_DISTANCE_PERCENT = 0.21
+    sa = clean_string(sa)
+    sb = clean_string(sb)
     dist = distance(sa, sb)
-    ml = float(max(len(sa),len(sb)))
-    name_comparison_print('|--- dist:%s, ml:%s' % (dist,ml))
+    ml = float(min(len(sa),len(sb)))
+    name_comparison_print('|--- dist:%s' % dist)
 
-    if ml==0 or dist/ml > MAX_ALLOWED_SURNAME_DISTANCE_PERCENT:
+    if ml==0 or dist > 0 : #/ml > MAX_ALLOWED_SURNAME_DISTANCE_PERCENT:
         return 0.0
     else:
-        return 1.-float(dist)/max(len(sa),len(sb))
+        return 1.#.-float(dist)/ml
 
 def initials_compatibility(ia, ib):
     max_n_initials = max(len(ia), len(ib))
@@ -702,7 +773,6 @@ def initials_compatibility(ia, ib):
     name_comparison_print('|--- initials distance, %s'% (initials_distance))
 
     return max(0.0, 0.8*initials_c + 0.1*(1-initials_distance) + 0.1*(1-initials_screwup))
-
 
 def compare_first_names(fna, fnb):
     gendernames = GLOBAL_gendernames
@@ -806,6 +876,7 @@ def compare_first_names(fna, fnb):
 
     return compat_score
 
+
 def compare_names(origin_name, target_name, initials_penalty=False):
     ''' Compare two names '''
 
@@ -819,8 +890,9 @@ def compare_names(origin_name, target_name, initials_penalty=False):
 
     name_comparison_print("|- splitted no: %s"% no)
     name_comparison_print("|- splitted nt: %s"% nt)
-
-    FS_surname_score = surname_compatibility(no[0], nt[0])
+    
+    sorted_names = sorted((no[0], nt[0]))
+    FS_surname_score = surname_compatibility(*sorted_names)
 
     assert FS_surname_score >= 0 and FS_surname_score <=1, "Compare_names: Surname score out of range"
 
@@ -834,7 +906,7 @@ def compare_names(origin_name, target_name, initials_penalty=False):
     name_comparison_print('|- initials only %s'% FS_initials_only)
     name_comparison_print('|- initials score %s'% FS_initials_score)
 
-    FS_first_names_score = compare_first_names(no[2],nt[2])
+    FS_first_names_score = compare_first_names(no[2], nt[2])
 
     assert FS_first_names_score >= 0 and FS_first_names_score <=1, "Compare_names: firstname score out of range"
     name_comparison_print('|- names score %s'% FS_first_names_score )
@@ -868,6 +940,27 @@ def generate_last_name_cluster_str(name):
     Use this function to find the last name cluster
     this name should be associated with.
     '''
+    m_name, surname_length = create_matchable_name(name,
+                                                   get_surname_words_length=True)
+    m_name_parts = m_name.split()
+    no_of_surname_chars = 0
+    index_of_surnames = 0
+    index_of_comma = name.find(',')
+
+    for index, m_name_part in enumerate(reversed(m_name_parts)):
+        no_of_surname_chars += len(m_name_part)
+        if index > 0 and no_of_surname_chars >= index_of_comma + 1 - index:
+            index_of_surnames = index - 1
+            break
+
+    no_of_name_parts = len(m_name_parts)
+    lname_start = no_of_name_parts - index_of_surnames - 1
+    lname_stop = no_of_name_parts
+    cluster_str = ''.join(m_name_parts[lname_start:lname_stop])
+    return cluster_str
+
+
+def generate_last_name_cluster_str_old(name):
     family = split_name_parts(name.decode('utf-8'))[0]
     return artifact_removal.sub("", family).lower()
 

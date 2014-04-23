@@ -18,44 +18,46 @@
 
 imgdir=$(localstatedir)/www/img
 
-img_DATA = bibauthorid.css bootstrap.min.css glyphicons-halflings.png glyphicons-halflings-white.png \
+img_DATA = glyphicons-halflings.png glyphicons-halflings-white.png \
 	   bibauthorid-help-full-image001.png \
+	   bibauthorid-help-full-image002.png \
 	   bibauthorid-help-full-image003.png \
+	   bibauthorid-help-full-image004.png \
 	   bibauthorid-help-full-image005.png \
+	   bibauthorid-help-full-image006.png \
+	   bibauthorid-help-full-image007-bis.png \
 	   bibauthorid-help-full-image007.png \
+	   bibauthorid-help-full-image008.png \
 	   bibauthorid-help-full-image009.png \
+	   bibauthorid-help-full-image010.png \
 	   bibauthorid-help-full-image011.png \
+	   bibauthorid-help-full-image012.png \
 	   bibauthorid-help-full-image013.png \
+	   bibauthorid-help-full-image014.png \
 	   bibauthorid-help-full-image015.png \
+	   bibauthorid-help-full-image016.png \
 	   bibauthorid-help-full-image017.png \
-	   bibauthorid-help-full-image019.png \
-	   bibauthorid-help-full-image021.png \
-	   bibauthorid-help-full-image023.png \
-	   bibauthorid-help-full-image025.png \
-	   bibauthorid-help-full-image027.png \
-	   bibauthorid-help-full-image028.png \
-	   bibauthorid-help-full-image029.png \
-	   bibauthorid-help-full-image031.png \
-	   bibauthorid-help-full-image033.png \
-	   bibauthorid-help.html \
+	   bibauthorid-help-full-image018.png \
 	   bibauthorid-help-small-image001.png \
+	   bibauthorid-help-small-image002.png \
 	   bibauthorid-help-small-image003.png \
+	   bibauthorid-help-small-image004.png \
 	   bibauthorid-help-small-image005.png \
+	   bibauthorid-help-small-image006.png \
+	   bibauthorid-help-small-image007-bis.png \
 	   bibauthorid-help-small-image007.png \
+	   bibauthorid-help-small-image008.png \
 	   bibauthorid-help-small-image009.png \
+	   bibauthorid-help-small-image010.png \
 	   bibauthorid-help-small-image011.png \
+	   bibauthorid-help-small-image012.png \
 	   bibauthorid-help-small-image013.png \
+	   bibauthorid-help-small-image014.png \
 	   bibauthorid-help-small-image015.png \
+	   bibauthorid-help-small-image016.png \
 	   bibauthorid-help-small-image017.png \
-	   bibauthorid-help-small-image019.png \
-	   bibauthorid-help-small-image021.png \
-	   bibauthorid-help-small-image023.png \
-	   bibauthorid-help-small-image025.png \
-	   bibauthorid-help-small-image027.png \
-	   bibauthorid-help-small-image028.png \
-	   bibauthorid-help-small-image029.png \
-	   bibauthorid-help-small-image031.png \
-	   bibauthorid-help-small-image033.png 
+	   bibauthorid-help-small-image018.png   
+
 
 EXTRA_DIST = $(img_DATA)
 

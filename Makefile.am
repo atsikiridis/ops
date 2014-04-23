@@ -164,7 +164,7 @@ install-jquery-plugins:
 	wget http://jquery-multifile-plugin.googlecode.com/svn/trunk/jquery.MultiFile.pack.js -O jquery.MultiFile.pack.js && \
 	wget http://invenio-software.org/download/jquery/jquery.tablesorter.20111208.zip -O jquery.tablesorter.zip && \
 	wget http://invenio-software.org/download/jquery/uploadify-v2.1.4.zip -O uploadify.zip && \
-	wget http://www.datatables.net/download/build/jquery.dataTables.min.js -O jquery.dataTables.min.js && \
+	wget http://cdn.datatables.net/1.9.0/js/jquery.dataTables.min.js  -O jquery.dataTables.min.js && \
 	wget http://invenio-software.org/download/jquery/jquery.bookmark.package-1.4.0.zip -O jquery.bookmark.package-1.4.0.zip && \
 	unzip -u jquery.tablesorter.zip -d tablesorter && \
 	wget http://invenio-software.org/download/jquery/jquery.fileTree-1.01.zip -O jquery.fileTree-1.01.zip && \
@@ -198,11 +198,11 @@ install-jquery-plugins:
 	rm -f jquery.bookmark.ext.* bookmarks-big.png bookmarkBasic.html jquery.bookmark.js jquery.bookmark.pack.js && \
 	mv bookmarks.png ../img/ && \
 	mv jquery.bookmark.css ../css/ && \
-	wget --no-check-certificate https://raw.github.com/0x000000/OmniWindow/master/jquery.omniwindow.js -O jquery.omniwindow.js && \
-	wget --no-check-certificate http://malsup.github.com/jquery.blockUI.js -O jquery.blockUI.js && \
-	wget --no-check-certificate https://github.com/Darsain/sly/raw/master/dist/sly.min.js -O sly.min.js &&\
-	wget --no-check-certificate http://invenio-software.org/download/jquery/parsley.js -O parsley.js &&\
-	wget --no-check-certificate http://invenio-software.org/download/jquery/spin.min.js -O spin.min.js &&\
+	wget --no-check-certificate https://raw.github.com/0x000000/OmniWindow/master/jquery.omniwindow.js && \
+	wget --no-check-certificate http://malsup.github.com/jquery.blockUI.js && \
+	wget --no-check-certificate https://github.com/Darsain/sly/raw/master/dist/sly.min.js &&\
+	wget --no-check-certificate https://raw.github.com/guillaumepotier/Parsley.js/master/dist/parsley.js && \
+	wget --no-check-certificate http://invenio-software.org/download/jquery/spin.min.js &&\
 	rm -f jquery.bookmark.package-1.4.0.zip && \
 	mkdir -p ${prefix}/var/www/img && \
 	cd ${prefix}/var/www/img && \

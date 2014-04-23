@@ -36,8 +36,7 @@ from invenio.dbquery import run_sql
 from invenio.bibtask import write_message, task_update_progress as bibtask_update_progress, task_sleep_now_if_required
 from invenio.docextract_task import fetch_last_updated, store_last_updated
 from invenio.docextract_record import get_record
-from unidecode import unidecode
-
+from invenio.textutils import translate_to_ascii
 
 CHUNK_SIZE = 10000
 
@@ -158,7 +157,7 @@ def process_chunk(recids):
                     pid = pids[field_author]
                 except KeyError:
                     # Name stored by an older version of bibauthorid
-                    pid = pids[unidecode(field_author)]
+                    pid = pids[translate_to_ascii(field_author)]
                 record_date = get_creation_date(recid)
                 if pid not in aff or aff[pid]['last_occurence'] <= record_date:
                     aff[pid] = {'aff': field_aff,
