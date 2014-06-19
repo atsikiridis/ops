@@ -627,9 +627,11 @@ class WebAuthorPages(WebInterfaceDirectory):
                 else:
                     datasets_pubs_to_display = list()
 
+                known = lambda recid: recid in internal_pubs or recid in datasets_pubs
+
                 arxiv_pubs = [(title, get_arxiv_url(arxiv_id), 'arxiv') for arxiv_id, title
-                                    in external_pubs['arxiv'].iteritems()]
-                doi_pubs = [(title, get_doi_url(doi_id), 'doi') for doi_id, title in external_pubs['doi'].iteritems()]
+                                    in external_pubs['arxiv'].iteritems() if not known(arxiv_id)]
+                doi_pubs = [(title, get_doi_url(doi_id), 'doi') for doi_id, title in external_pubs['doi'].iteritems() if not known(doi_id)]
 
                 external_pubs = arxiv_pubs + doi_pubs
 
