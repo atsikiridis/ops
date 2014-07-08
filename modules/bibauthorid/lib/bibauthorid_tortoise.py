@@ -110,10 +110,12 @@ def tortoise(pure=False,
         logger.log("Preparing cluster sets.")
         clusters, _lnames, sizes = delayed_cluster_sets_from_personid(pure, last_run)
         logger.log("Building all matrices.")
+        clusters = [(s,) for s in clusters]
         schedule_workers(lambda x: force_create_matrix(x, force=force_matrix_creation), clusters)
 
     logger.log("Preparing cluster sets.")
     clusters, _lnames, sizes = delayed_cluster_sets_from_personid(pure, last_run)
+    clusters = [(s(),) for s in clusters]
     logger.log("Starting disambiguation.")
     schedule_workers(wedge_and_store, clusters)
 
