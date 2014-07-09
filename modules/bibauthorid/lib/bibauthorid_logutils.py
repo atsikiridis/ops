@@ -73,7 +73,7 @@ class Logger(object):
                 self._bai_print(msg, in_line=in_line)
 
     def update_status(self, percent, comment=""):
-        if Logger._print_output:
+        if Logger._print_output and self._verbose:
             filled = max(0, int(floor(percent * Logger.status_len)))
             bar = "[%s%s] " % ("#" * filled,
                                "-" * (Logger.status_len - filled))
@@ -85,7 +85,7 @@ class Logger(object):
 
     def update_status_final(self, comment=""):
         self.update_status(1., comment)
-        if Logger._print_output:
+        if Logger._print_output and self._verbose:
             self._bai_print("", to_file=False)
 
     @property
