@@ -133,14 +133,17 @@ def tortoise_last_name(name, wedge_threshold=None, from_mark=True, pure=False):
         logger.log(' ... from pid, pure=%s' % str(pure))
         clusters, lnames, sizes = delayed_cluster_sets_from_personid(pure)
         logger.log(' ... delayed pure done!')
-
-    idx = lnames.index(lname)
-    cluster = clusters[idx]
-    size = sizes[idx]
-    cluster_set = cluster()
-    logger.log("Found, %s(%s). Total number of bibs: %d." % (name, lname, size))
-    create_matrix(cluster_set, False)
-    wedge_and_store(cluster_set)
+        
+    try:      
+        idx = lnames.index(lname)
+        cluster = clusters[idx]
+        size = sizes[idx]
+        cluster_set = cluster()
+        logger.log("Found, %s(%s). Total number of bibs: %d." % (name, lname, size))
+        create_matrix(cluster_set, False)
+        wedge_and_store(cluster_set)
+    except (IndexError, ValueError):
+        logger.log("Sorry, %s not found in the last name clusters" % (lname))
 
 
 def tortoise_last_names(names_args_list):
