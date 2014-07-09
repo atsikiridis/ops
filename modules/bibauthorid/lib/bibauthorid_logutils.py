@@ -67,26 +67,26 @@ class Logger(object):
 
     def log(self, *args, **kwargs):
         in_line = kwargs.pop('in_line', False)
-        if self._verbose and Logger._print_output:
+        force_print = kwargs.pop('force', False)
+        if force_print or (self._verbose and Logger._print_output):
             msg = self._generate_msg(args)
             with mp.Lock():
                 self._bai_print(msg, in_line=in_line)
 
     def update_status(self, percent, comment=""):
-        if Logger._print_output and self._verbose:
-            filled = max(0, int(floor(percent * Logger.status_len)))
-            bar = "[%s%s] " % ("#" * filled,
-                               "-" * (Logger.status_len - filled))
-            percent = ("%.2f%% done" % (percent * 100))
-            progress = self._padd(bar + percent, Logger.status_len + 2)
-            comment = self._padd(comment, Logger.comment_len)
-            self.log(progress, comment, Logger._terminator, to_file=False, in_line=True)
-            sys.stdout.flush()
+        
+        filled = max(0, int(floor(percent * Logger.status_len)))
+        bar = "[%s%s] " % ("#" * filled,
+                           "-" * (Logger.status_len - filled))
+        percent = ("%.2f%% done" % (percent * 100))
+        progress = self._padd(bar + percent, Logger.status_len + 2)
+        comment = self._padd(comment, Logger.comment_len)
+        self.log(progress, comment, Logger._terminator, to_file=False, in_line=True, force=True)
+        sys.stdout.flush()
 
     def update_status_final(self, comment=""):
         self.update_status(1., comment)
-        if Logger._print_output and self._verbose:
-            self._bai_print("", to_file=False)
+        self._bai_print("", to_file=False)
 
     @property
     def verbose(self):
