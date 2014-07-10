@@ -136,9 +136,9 @@ class Bib_matrix(object):
             self._matrix = self._f['array']
 
         except (IOError, UnpicklingError, KeyError, OSError) as e:
-      
+
             if e.errno == errno.ENOENT:  # The file has not been created yet. If this the first time bib_matrix runs, it is fine.
-                self.logger.log("Attention: The bibmap serialized file ",
+                self.logger.log("Warning: The bibmap serialized file ",
                                 self.get_map_path(),
                                 "is not present. Will not load bibmap.")
             else:
