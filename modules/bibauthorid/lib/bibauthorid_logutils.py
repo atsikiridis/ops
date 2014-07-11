@@ -27,7 +27,7 @@ class Logger(object):
     log_lock = mp.Lock()
     modify_lock = mp.Lock()
 
-    def __init__(self, logger_name, stdout_only=False):
+    def __init__(self, logger_name, stdout_only=False, verbose=True):
 
         self._name = logger_name
 
@@ -37,7 +37,7 @@ class Logger(object):
             self._file_only = False
         self._pidfiles = dict()
 
-        self._verbose = True
+        self._verbose = verbose
 
     def _generate_msg(self, *args):
         message = '[%s][%s][%s]: ' % (datetime.today(), Logger._pid(),
@@ -100,14 +100,39 @@ class Logger(object):
     def verbose(self, val):
         self._verbose = val
 
+
     @staticmethod
-    def override_stdout_config(verbose=False, fileout=False, stdout=True):
+    def override_verbosity(verbose):
         '''
-        Globally configure logging.
+        Globally configure verbosity logging.
         '''
         with mp.Lock():
-            if fileout:
-                Logger._file_out = True
-            if stdout:
-                Logger._file_out = False
             Logger._print_output = verbose
+
+
+    @staticmethod
+    def override_stdout(stdout):
+        '''
+        Globally configure stdout logging.
+        '''
+        with mp.Lock():
+            Logger._file_only = not stdout
+     
+
+    @staticmethod       
+    def override_fileout(fileout):
+        '''
+        Globally configure stdout logging.
+        '''
+        with mp.Lock():
+            if fileout and (Logger._print_output or Logger._update_status):
+                Logger._file_out = True
+                
+
+    @staticmethod            
+    def override_update_status(update_status):
+        '''
+        Globally configure update_status logging.
+        '''
+        with mp.Lock():
+            Logger._update_status = update_status

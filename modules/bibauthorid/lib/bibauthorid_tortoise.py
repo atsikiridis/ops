@@ -36,7 +36,6 @@ except:
 
 from invenio.bibauthorid_logutils import Logger
 
-# override_stdout_config(fileout=True, stdout=False)
 
 from invenio.bibauthorid_cluster_set import delayed_cluster_sets_from_marktables
 from invenio.bibauthorid_cluster_set import delayed_cluster_sets_from_personid
@@ -248,7 +247,6 @@ def tortoise_coefficient_statistics(pickle_output=None, generate_graphs=True):
         ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=6, mode="expand", borderaxespad=0.)
         plt.savefig(filename)
 
-    logger.verbose = True
 
     files = ['/tmp/baistats/' + x for x in os.listdir('/tmp/baistats/') if x.startswith('cluster_status_report_pid')]
     fnum = float(len(files))
