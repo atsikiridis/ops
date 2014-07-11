@@ -29,7 +29,10 @@ def maximized_mapping(matrix):
     (20, 4, 15))
     the function will return [(2, 0, 20),
                               (0, 2, 10),
-                              (1, 1, 4)].
+                              (1, 1, 4)],
+
+    where the first element is the row key, the second element is the column key
+    and the third element is the value.
     
     Moreover, for the following 4 x 4 matrix,
     ((10, 0, 1, 2),
