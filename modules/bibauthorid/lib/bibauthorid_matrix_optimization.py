@@ -27,7 +27,22 @@ def maximized_mapping(matrix):
     ((4, 1, 10),
     (7, 4, 2),
     (20, 4, 15))
-    the function will return ((1, 3), (2, 2), (3, 1)).
+    the function will return [(2, 0, 20),
+                              (0, 2, 10),
+                              (1, 1, 4)].
+    
+    Moreover, for the following 4 x 4 matrix,
+    ((10, 0, 1, 2),
+     (3,7,6,1),
+     (0,15,5,3),
+     (7,6,3,2))
+     
+     the result wil be
+     [(2, 1, 15),
+      (0, 0, 10),
+      (1, 2, 6),
+      (3, 3, 2)]
+    
     For performance reasons the function will not always return
     the optimal mapping.
     '''
