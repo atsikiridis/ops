@@ -11,10 +11,11 @@ import multiprocessing as mp
 class Logger(object):
 
     _pid = os.getpid
-    _print_output = bconfig.DEBUG_OUTPUT
-    _file_out = bconfig.DEBUG_LOG_TO_PIDFILE
+    _print_output = bconfig.LOG_VERBOSE
+    _file_out = bconfig.LOG_TO_PIDFILE
     _file_prefix = '/tmp/bibauthorid_log_pid_'
-    _newline = bconfig.DEBUG_UPDATE_STATUS_THREAD_SAFE
+    _newline = bconfig.LOG_UPDATE_STATUS_THREAD_SAFE
+    _update_status = bconfig.LOG_UPDATE_STATUS
 
     status_len = 18
     comment_len = 40
@@ -36,7 +37,7 @@ class Logger(object):
             self._file_only = False
         self._pidfiles = dict()
 
-        self._verbose = Logger._print_output
+        self._verbose = True
 
     def _generate_msg(self, *args):
         message = '[%s][%s][%s]: ' % (datetime.today(), Logger._pid(),
@@ -64,24 +65,24 @@ class Logger(object):
     def _padd(self, stry, l):
         return stry[:l].ljust(l)
 
-
     def log(self, *args, **kwargs):
         in_line = kwargs.pop('in_line', False)
-        force_print = kwargs.pop('force', False)
-        if force_print or (self._verbose and Logger._print_output):
+        status = kwargs.pop('status', False)
+        if status or (self._verbose and Logger._print_output):
             msg = self._generate_msg(args)
             with mp.Lock():
                 self._bai_print(msg, in_line=in_line)
 
     def update_status(self, percent, comment=""):
-        
         filled = max(0, int(floor(percent * Logger.status_len)))
         bar = "[%s%s] " % ("#" * filled,
                            "-" * (Logger.status_len - filled))
         percent = ("%.2f%% done" % (percent * 100))
         progress = self._padd(bar + percent, Logger.status_len + 2)
         comment = self._padd(comment, Logger.comment_len)
-        self.log(progress, comment, Logger._terminator, to_file=False, in_line=True, force=True)
+        self.log(progress, comment, Logger._terminator, to_file=False,
+                 in_line=True,
+                 status=Logger._update_status)
         sys.stdout.flush()
 
     def update_status_final(self, comment=""):
