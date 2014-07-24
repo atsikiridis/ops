@@ -51,6 +51,25 @@ from invenio.websearch_templates import tmpl_citesummary_get_link_for_rep_breakd
 # from invenio.textutils import encode_for_xml
 
 
+def initialize_jinja2_environment():
+    """ Constructs the environment where the templates should be loaded."""
+    TEMPLATES_DIR = "%s/bibauthorid/templates" % CFG_ETCDIR
+    loader = FileSystemLoader(TEMPLATES_DIR)
+    environment = Environment(loader=loader)
+    environment.filters['groupformat'] = group_format_number
+    
+    return environment
+
+
+def load_named_template(template, environment):
+    """ Loads a jinja template to an environment."""
+    if template is not "generic":
+        loaded_template = environment.get_template("%s.html" % str(template))
+    else:
+        loaded_template = environment.get_template("generic_wrapper.html")
+    return loaded_template
+
+
 class WebProfileMenu():
 
     def get_menu_items(self):
@@ -144,12 +163,8 @@ class WebProfileMenu():
 
 
 class WebProfilePage():
-
-    TEMPLATES_DIR = "%s/bibauthorid/templates" % CFG_ETCDIR
-    loader = FileSystemLoader(TEMPLATES_DIR)
-    environment = Environment(loader=loader)
-
-    environment.filters['groupformat'] = group_format_number
+    
+    environment = initialize_jinja2_environment()
 
     def __init__(self, page, heading, no_cache=False):
         self.css_dir = CFG_BASE_URL + "/css"
@@ -227,15 +242,6 @@ class WebProfilePage():
             'bootstrap': self.bootstrap_data
         })
 
-    @staticmethod
-    def _load_named_template(template):
-        environment = WebProfilePage.environment
-        if template is not "generic":
-            loaded_template = environment.get_template("%s.html" % str(template))
-        else:
-            loaded_template = environment.get_template("generic_wrapper.html")
-        return loaded_template
-
     def _get_standard_author_page_parameters(self):
         return {
             'title': self.heading,
@@ -248,11 +254,12 @@ class WebProfilePage():
 
     def get_wrapped_body(self, template, content):
         parameters = self._get_standard_author_page_parameters()
+        environment = WebProfilePage.environment
         try:
-            loaded_template = self._load_named_template(template)
+            loaded_template = load_named_template(template, environment)
             parameters.update(content)
         except TemplateNotFound:
-            loaded_template = self._load_named_template("generic")
+            loaded_template = load_named_template("generic", environment)
             parameters.update({
                 'html': "Unable to load named template.<br>%s" % str(content)
             })
@@ -261,8 +268,9 @@ class WebProfilePage():
 
     @staticmethod
     def render_template(template, content):
+        environment = WebProfilePage.environment
         try:
-            loaded_template = WebProfilePage._load_named_template(template)
+            loaded_template = load_named_template(template, environment)
         except TemplateNotFound:
             return "Unable to load named template: %s.<br>%s" % (template, str(content))
 

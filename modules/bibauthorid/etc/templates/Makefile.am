@@ -28,8 +28,9 @@ etc_DATA    = head.html \
             publications_box.html \
             manage_profile.html \
             personal_details_box.html \
-	      autoclaim_box.html \
-            help.html
+	    autoclaim_box.html \
+            help.html \
+	    dashboard.html
 
 EXTRA_DIST = $(etc_DATA)
 

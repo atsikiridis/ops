@@ -84,6 +84,9 @@ from invenio.bibrecord import record_get_field_value, record_get_field_values, \
     record_get_field_instances, field_get_subfield_values
 from invenio.bibauthorid_name_utils import split_name_parts
 
+
+from invenio.bibauthorid_dashboard import WebAuthorDashboard
+
 TEMPLATE = load('bibauthorid')
 
 
@@ -3456,6 +3459,7 @@ class WebInterfaceAuthor(WebInterfaceDirectory):
         /author/profile/
         /author/search
         /author/ticket/
+        /author/dashboard/
     '''
     _exports = ['',
                 'choose_profile',
@@ -3466,7 +3470,8 @@ class WebInterfaceAuthor(WebInterfaceDirectory):
                 'profile',
                 'search',
                 'search_ajax',
-                'ticket']
+                'ticket',
+                'dashboard']
 
     from invenio.webauthorprofile_webinterface import WebAuthorPages
 
@@ -3479,6 +3484,7 @@ class WebInterfaceAuthor(WebInterfaceDirectory):
     search = claim.search
     search_ajax = WebAuthorSearch()
     ticket = WebInterfaceAuthorTicketHandling()
+    dashboard = WebAuthorDashboard()
 
     def _lookup(self, component, path):
         if component not in self._exports:
