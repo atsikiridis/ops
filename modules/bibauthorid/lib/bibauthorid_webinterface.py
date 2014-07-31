@@ -85,7 +85,7 @@ from invenio.bibrecord import record_get_field_value, record_get_field_values, \
 from invenio.bibauthorid_name_utils import split_name_parts
 
 
-from invenio.bibauthorid_dashboard import WebAuthorDashboard
+from invenio.bibauthorid_disambiguation import WebAuthorDashboard
 
 TEMPLATE = load('bibauthorid')
 

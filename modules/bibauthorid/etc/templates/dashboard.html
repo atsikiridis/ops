@@ -1,0 +1,136 @@
+
+
+Run Disambiguation
+<br><br>
+
+
+<form class="disambiguate-form" method="post" action="" >
+    <table width="100%" cellpadding="0" cellspacing="10" border="1">
+        {% for n in range(1) %}
+        <tr>
+            <td width="50%" valign="top">
+                   Surname: <input type="text" name="surname"><br>  
+            </td>
+            <td width="50%" valign="top">
+                   Threshold: <input type="text" name="threshold"><br>  
+            </td>
+
+            <td>
+                <button class="btn btn-default" type="submit" >
+                    <span class="glyphicon glyphicon-search"></span>Disambiguate
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>    
+    <br><br>
+</form>
+
+<script type="text/javascript">
+$("#disambiguate-form").submit(function() {
+    $.ajax({
+        type: "POST",
+        url: "/author/dashboard",
+        data: $("#disambiguate-form").serializeArray(),
+        success: function() {
+            // Whatever you want here, like close dialog box, etc. 
+        }
+        });
+    return false;
+});</script>
+
+
+
+<form class="refresh-form" method="post" action="">
+    <button class="btn btn-default" type="button" onclick="document.getElementsByClassName('refresh-form')[0].submit();">
+        <span class="glyphicon glyphicon-search"></span>Refresh
+    </button>
+</form>
+
+<br><br>
+
+
+Running Jobs
+<table width="100%" border="1">
+    <tr>
+        <td width="20%" valign="top">
+               Bibsched Process id <br>  
+        </td>
+        <td  width="20%" valign="top">
+               % Complete<br>  
+        </td>
+        <td  width="20%" valign="top">
+               Arguments<br>  
+        </td>
+        <td width="20%" valign="top">
+               Started at<br>  
+        </td>
+        <td width="20%" valign="top">
+               Status <br>  
+        </td>
+    </tr>
+    {% for bibsched_id, status, progress, args, start in running_jobs %}
+    <tr>
+
+    </tr>
+    {% endfor %}
+</table>
+
+<br><br>
+
+Completed Jobs
+
+<table width="100%" border="1">
+    <tr>
+        <td width="20%" valign="top">
+               Bibsched Process id <br>  
+        </td>
+        <td  width="20%" valign="top">
+               % Complete<br>  
+        </td>
+        <td  width="20%" valign="top">
+               Arguments<br>  
+        </td>
+        <td width="20%" valign="top">
+               Started at<br>  
+        </td>
+        <td width="20%" valign="top">
+               Completed at<br>  
+        </td>
+    </tr>
+    {% for n in range(1) %}
+    <tr>
+
+    </tr>
+    {% endfor %}
+</table>
+
+
+<br><br>
+
+Failed Jobs
+
+<table width="100%" border="1">
+    <tr>
+        <td width="20%" valign="top">
+               Bibsched Process id <br>  
+        </td>
+        <td  width="20%" valign="top">
+               % Complete<br>  
+        </td>
+        <td  width="20%" valign="top">
+               Arguments<br>  
+        </td>
+        <td width="20%" valign="top">
+               Started at<br>  
+        </td>
+        <td width="20%" valign="top">
+               Failed at<br>  
+        </td>
+    </tr>
+    {% for n in range(1) %}
+    <tr>
+
+    </tr>
+    {% endfor %}
+</table>

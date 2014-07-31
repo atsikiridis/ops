@@ -62,7 +62,7 @@ pylib_DATA = \
 	bibauthorid_webutils.py \
 	bibauthorid_logutils.py \
 	bibauthorid_testutils.py \
-	bibauthorid_dashboard.py
+	bibauthorid_disambiguation.py
 
 jsdir=$(localstatedir)/www/js
 
