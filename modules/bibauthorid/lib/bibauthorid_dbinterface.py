@@ -2793,21 +2793,12 @@ def get_papers_affected_since(since):  # personid_get_recids_affected_since
     @return: paper identifiers
     @rtype: list [int,]
     '''
-    recs = set(_split_signature_string(sig[0])[2] for sig in run_sql("""select distinct value
-                                                                       from aidUSERINPUTLOG
-                                                                       where timestamp >= %s""",
-              (since,)) if ',' in sig[0] and ':' in sig[0])
+    recs = run_sql("""select bibrec from aidPERSONIDPAPERS where
+                      last_updated >= %s or personid in
+                      (select personid from aidPERSONIDDATA where
+                      last_updated >= %s)""", (since, since))
 
-    pids = set(int(pid[0]) for pid in run_sql("""select distinct personid
-                                                 from aidUSERINPUTLOG
-                                                 where timestamp >= %s""",
-              (since,)) if pid[0] > 0)
-
-    if pids:
-        pids_sqlstr = _get_sqlstr_from_set(pids)
-        recs |= set(rec[0] for rec in run_sql("""select bibrec from aidPERSONIDPAPERS
-                                                 where personid in %s"""
-                                              % pids_sqlstr))
+    recs = set([rec[0] for rec in recs])
 
     return list(recs)
 
