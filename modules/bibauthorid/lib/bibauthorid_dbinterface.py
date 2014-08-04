@@ -64,6 +64,7 @@ from invenio.bibauthorid_general_utils import memoized
 from invenio.bibauthorid_general_utils import monitored
 from invenio.bibauthorid_logutils import Logger
 import time
+from intbitset import intbitset
 
 
 # run_sql = monitored(run_sql)
@@ -2782,25 +2783,33 @@ def back_up_author_paper_associations():  # copy_personids
 # ********** getters **********#
 
 
-def get_papers_affected_since(since):  # personid_get_recids_affected_since
-    '''
-    Gets the set of papers which were manually changed after the specified
-    timestamp.
-
-    @param since: consider changes after the specified timestamp
-    @type since: datetime.datetime
-
-    @return: paper identifiers
-    @rtype: list [int,]
-    '''
+def get_papers_affected_since(date_from, date_to=None):  # personid_get_recids_affected_since
+    """
+    Gets the records whose bibauthorid informations changed between
+    date_from and date_to (inclusive).
+    
+    If date_to is None, gets the records whose bibauthorid informations
+    changed after date_to (inclusive).
+    
+    @param date_from: the date after which this function will look for
+        affected records.
+    @type date_from: datetime.datetime
+    
+    @param date_to: the date before which this function will look for
+        affected records. Currently this is not supported and is
+        ignored. Should be supported in the future.
+    @type date_to: datetime.datetime or None
+    
+    @return: affected record ids
+    @return type: intbitset
+    """
     recs = run_sql("""select bibrec from aidPERSONIDPAPERS where
                       last_updated >= %s or personid in
                       (select personid from aidPERSONIDDATA where
-                      last_updated >= %s)""", (since, since))
+                      last_updated >= %s)""", (date_from, date_from))
 
-    recs = set([rec[0] for rec in recs])
+    return intbitset([rec[0] for rec in recs])
 
-    return list(recs)
 
 
 def get_papers_info_of_author(pid, flag,  # get_person_papers
