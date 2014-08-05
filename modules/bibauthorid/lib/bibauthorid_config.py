@@ -180,7 +180,7 @@ LIMIT_EXTERNAL_IDS_COLLECTION_TO_CLAIMED_PAPERS = True
 # Bibauthorid logging options.
 
 # Get frequent status updates from daemons.
-LOG_UPDATE_STATUS = True
+LOG_UPDATE_STATUS = False
 
 # General messages logged by applications. Use for extra monitoring.
 LOG_VERBOSE = False
