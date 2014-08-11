@@ -4910,3 +4910,6 @@ def get_records_of_authors(personids_set):
 def author_exists(personid):
     return any((bool(run_sql("select * from aidPERSONIDDATA where personid=%s limit 1", (personid,))),
                 bool(run_sql("select * from aidPERSONIDPAPERS where personid=%s limit 1", (personid,)))))
+
+def get_disambiguation_tasks(status):
+    pass

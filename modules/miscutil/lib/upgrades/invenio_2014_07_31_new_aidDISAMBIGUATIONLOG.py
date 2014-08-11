@@ -12,8 +12,8 @@ def do_upgrade():
   `taskid` BIGINT( 16 ) UNSIGNED NOT NULL ,
   `phase` VARCHAR( 256 ) NOT NULL,
   `progress` FLOAT( 8 ) UNSIGNED NOT NULL,
-  `args' longblob,
+  `args` longblob,
   `start_time` datetime NOT NULL,
   `end_time` datetime NOT NULL,
-  `status` enum('RUNNING, SUCEEDED, FAILED') NOT NULL,
+  `status` enum('RUNNING, SUCEEDED, FAILED') NOT NULL
 ) ENGINE=MyISAM""")
