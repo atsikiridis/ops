@@ -63,6 +63,7 @@ from invenio.bibauthorid_name_utils import split_name_parts, \
 from invenio.bibauthorid_general_utils import memoized
 from invenio.bibauthorid_general_utils import monitored
 from invenio.bibauthorid_logutils import Logger
+
 import time
 
 
@@ -4911,5 +4912,68 @@ def author_exists(personid):
     return any((bool(run_sql("select * from aidPERSONIDDATA where personid=%s limit 1", (personid,))),
                 bool(run_sql("select * from aidPERSONIDPAPERS where personid=%s limit 1", (personid,)))))
 
-def get_disambiguation_tasks(status):
+
+
+# Disambiguation web interface
+def add_new_disambiguation_task(task_id, cluster, name_of_user, threshold,
+                                start_time, end_time):
+    args = serialize({'threshold': threshold, 'user': name_of_user})
+    query = """insert into aidDISAMBIGUATIONLOG (taskid, surname, args,
+               start_time, end_time) values (%s, %s, %s, %s, %s)"""
+    run_sql(query, (task_id, cluster, args, start_time, end_time))
+
+
+def update_disambiguation_task_status(task_id, status):
+    print "YO UPDATE", status, task_id
+    run_sql("update aidDISAMBIGUATIONLOG set status=%s where taskid=%s",
+            (status, task_id))
+
+
+def get_disambiguation_task_data(status=None):
+    base_query = """select taskid, phase, progress, args, start_time, end_time
+                    from aidDISAMBIGUATIONLOG"""
+    try:
+        query = ' '.join([base_query, "where status=%s"])
+        task_data = run_sql(query, (status,))
+    except IndexError:
+        task_data = run_sql(base_query)
+
+    return task_data
+
+
+def get_status_of_task_by_task_id(task_id):
+    try:
+        query = "select status from aidDISAMBIGUATIONLOG where taskid=%s"
+        return run_sql(query, (task_id,))[0][0]
+    except IndexError:
+        raise TaskNotRegisteredError
+
+
+def get_task_id_by_cluster_name(cluster):
+    try:
+        query = "select taskid from aidDISAMBIGUATIONLOG where cluster=%s"
+        return run_sql(query, (cluster,))[0][0]
+    except IndexError:
+        pass
+
+
+class TaskNotRegisteredError(Exception):
+    '''
+    To be raised when a task has not been registered to the
+    aidDISAMBIGUATIONLOG table.
+    '''
+    pass
+
+
+class TaskAlreadyRunningError(Exception):
+    '''
+    To be raised when task is already running.
+    '''
+    pass
+
+
+class TaskNotRunningError(Exception):
+    '''
+    To be raised when task is not running.
+    '''
     pass

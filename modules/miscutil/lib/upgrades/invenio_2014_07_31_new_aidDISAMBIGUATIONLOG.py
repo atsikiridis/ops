@@ -10,10 +10,11 @@ def do_upgrade():
     """ New table aidDISAMBIGUATIONLOG  """
     run_sql("""CREATE TABLE IF NOT EXISTS `aidDISAMBIGUATIONLOG` (
   `taskid` BIGINT( 16 ) UNSIGNED NOT NULL ,
-  `phase` VARCHAR( 256 ) NOT NULL,
-  `progress` FLOAT( 8 ) UNSIGNED NOT NULL,
-  `args` longblob,
+  `surname` VARCHAR( 255 ),
+  `phase` VARCHAR( 255 ),
+  `progress` FLOAT( 8 ),
+  `args` longblob NOT NULL,
   `start_time` datetime NOT NULL,
-  `end_time` datetime NOT NULL,
-  `status` enum('RUNNING, SUCEEDED, FAILED') NOT NULL
+  `end_time` datetime,
+  `status` enum('RUNNING', 'SUCEEDED', 'FAILED')
 ) ENGINE=MyISAM""")

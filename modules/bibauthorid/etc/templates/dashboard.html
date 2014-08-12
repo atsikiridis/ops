@@ -26,21 +26,6 @@ Run Disambiguation
     <br><br>
 </form>
 
-<script type="text/javascript">
-$("#disambiguate-form").submit(function() {
-    $.ajax({
-        type: "POST",
-        url: "/author/dashboard",
-        data: $("#disambiguate-form").serializeArray(),
-        success: function() {
-            // Whatever you want here, like close dialog box, etc. 
-        }
-        });
-    return false;
-});</script>
-
-
-
 <form class="refresh-form" method="post" action="">
     <button class="btn btn-default" type="button" onclick="document.getElementsByClassName('refresh-form')[0].submit();">
         <span class="glyphicon glyphicon-search"></span>Refresh
@@ -53,26 +38,49 @@ $("#disambiguate-form").submit(function() {
 Running Jobs
 <table width="100%" border="1">
     <tr>
-        <td width="20%" valign="top">
+        <td width="16.6%" valign="top">
                Bibsched Process id <br>  
         </td>
-        <td  width="20%" valign="top">
-               % Complete<br>  
+        <td  width="16.6%" valign="top">
+               Cluster<br>  
         </td>
-        <td  width="20%" valign="top">
-               Arguments<br>  
+        <td  width="16.6%" valign="top">
+               Progress<br>  
         </td>
-        <td width="20%" valign="top">
-               Started at<br>  
+        <td width="16.6%" valign="top">
+               Args<br>  
         </td>
-        <td width="20%" valign="top">
-               Status <br>  
+        <td width="16.6%" valign="top">
+               Start <br>  
+        </td>
+        <td width="16.6%" valign="top">
+               Kill job <br>  
         </td>
     </tr>
-    {% for bibsched_id, status, progress, args, start in running_jobs %}
+    {% for bibsched_id, cluster, phase, progress, args, start in running_disambiguation_tasks %}
+    <form class="task-form" method="post" action="" >
     <tr>
-
+        <td width="16.6%" valign="top" name="task-id">
+               {{ bibsched_id }}<br>  
+        </td>
+        <td  width="16.6%" valign="top">
+               {{ cluster }}<br>  
+        </td>
+        <td  width="16.6%" valign="top">
+               {{ phase }}  <progress value={{ progress }} max="1"><br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ args }}<br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ start.strptime('%Y-%m-%d') }} <br>  
+        </td>
+        <td width="16.6%" valign="top">
+               <button class="btn btn-default" type="submit" >
+                    <span class="glyphicon glyphicon-search"></span>Kill
+               </button> <br>  
     </tr>
+    </form>
     {% endfor %}
 </table>
 
@@ -82,25 +90,44 @@ Completed Jobs
 
 <table width="100%" border="1">
     <tr>
-        <td width="20%" valign="top">
+        <td width="16.6%" valign="top">
                Bibsched Process id <br>  
         </td>
-        <td  width="20%" valign="top">
-               % Complete<br>  
+        <td  width="16.6%" valign="top">
+               Cluster<br>  
         </td>
-        <td  width="20%" valign="top">
-               Arguments<br>  
+        <td  width="16.6%" valign="top">
+               Progress<br>  
         </td>
-        <td width="20%" valign="top">
-               Started at<br>  
+        <td width="16.6%" valign="top">
+               Args <br>  
         </td>
-        <td width="20%" valign="top">
-               Completed at<br>  
+        <td width="16.6%" valign="top">
+               Start<br>
+        <td width="16.6%" valign="top">
+               End<br>
         </td>
     </tr>
-    {% for n in range(1) %}
+    {% for bibsched_id, cluster, phase, progress, args, start, end in completed_disambiguation_tasks %}
     <tr>
-
+        <td width="16.6%" valign="top" name="task-id">
+               {{ bibsched_id }}<br>  
+        </td>
+        <td  width="16.6%" valign="top">
+               {{ cluster }}<br>  
+        </td>
+        <td  width="16.6%" valign="top">
+               {{ phase }}  <progress value={{ progress }} max="1"><br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ args }}<br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ start.strptime('%Y-%m-%d') }} <br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ end }} <br>  
+        </td>
     </tr>
     {% endfor %}
 </table>
@@ -112,25 +139,44 @@ Failed Jobs
 
 <table width="100%" border="1">
     <tr>
-        <td width="20%" valign="top">
+        <td width="16.6%" valign="top">
                Bibsched Process id <br>  
         </td>
-        <td  width="20%" valign="top">
-               % Complete<br>  
+        <td  width="16.6%" valign="top">
+               Cluster<br>  
         </td>
-        <td  width="20%" valign="top">
-               Arguments<br>  
+        <td  width="16.6%" valign="top">
+               Progress<br>  
         </td>
-        <td width="20%" valign="top">
-               Started at<br>  
+        <td width="16.6%" valign="top">
+               Args <br>  
         </td>
-        <td width="20%" valign="top">
-               Failed at<br>  
+        <td width="16.6%" valign="top">
+               Start<br>
+        <td width="16.6%" valign="top">
+               End<br>
         </td>
     </tr>
-    {% for n in range(1) %}
+    {% for bibsched_id, cluster, phase, progress, args, start, end in failed_disambiguation_tasks %}
     <tr>
-
+        <td width="16.6%" valign="top" name="task-id">
+               {{ bibsched_id }}<br>  
+        </td>
+        <td  width="16.6%" valign="top">
+               {{ cluster }}<br>  
+        </td>
+        <td  width="16.6%" valign="top">
+               {{ phase }}  <progress value={{ progress }} max="1"><br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ args }}<br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ start.strptime('%Y-%m-%d') }} <br>  
+        </td>
+        <td width="16.6%" valign="top">
+               {{ end }} <br>
+        </td>
     </tr>
     {% endfor %}
 </table>
