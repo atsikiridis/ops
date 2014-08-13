@@ -34,9 +34,35 @@ def _schedule_disambiguation(cluster, name_of_user, threshold):
     threshold as a parameter.
     '''
     last_names = '--last-names=%s:%s' % (cluster, threshold)
-    params = ('bibauthorid', name_of_user, '--disambiguate', last_names)
-    print "DISAMBIGUATE", params
+    params = ('bibauthorid', name_of_user, '--disambiguate',
+              '--single-threaded', last_names)
     return task_low_level_submission(*params)
+
+
+class monitored_disambiguation(object):
+
+    def __init__(self, func):
+        self._func = func
+
+    def __call__(self, *args, **kwargs):
+
+        try:
+            import mod_wsgi
+        except ImportError:
+            return self._func(*args, **kwargs)
+
+        name = kwargs.get('last_names_thresholds').keys()[0]
+        task_id = get_scheduled_taskid_for_name(name)  #TODO threshold?
+        start_time = datetime.now()
+        update_disambiguation_task_status(task_id, 'RUNNING')
+        try:
+            self._func(*args, **kwargs)
+        except Exception:
+            update_disambiguation_task_status(task_id, 'FAILED')
+            raise Exception
+            # TODO get failure info.
+        end_time = datetime.now()
+        update_disambiguation_task_status(task_id, 'COMPLETED')
 
 
 class DisambiguationTask(object):
@@ -47,7 +73,7 @@ class DisambiguationTask(object):
 
     def __init__(self, task_id=None, cluster=None, name_of_user='admin',
                  threshold=WEDGE_THRESHOLD, phase=None, progress=0.0,
-                 start_time=datetime.now(), end_time=None):
+                 start_time=None, end_time=None):
         try:
             assert task_id or cluster
         except AssertionError:
@@ -72,9 +98,9 @@ class DisambiguationTask(object):
                      scheduled.""" % self._cluster
             raise TaskAlreadyRunningError(msg)
         self.task_id = _schedule_disambiguation(self._cluster,
-                                                 self._name_of_user,
-                                                 self._threshold)
-        update_disambiguation_task_status(self.task_id, 'RUNNING')
+                                                self._name_of_user,
+                                                self._threshold)
+        update_disambiguation_task_status(task_id, 'SCHEDULED')
 
     def kill(self):
         if self.running:
@@ -139,20 +165,10 @@ class WebAuthorDashboard(WebInterfaceDirectory):
                                    'surname': (str, None),
                                    'threshold': (str, None)})
 
-
-        print argd
-        try:
-            surname = argd['surname']
-        except KeyError:
-            surname = None
-
-        try:
+        if argd['surname']:
             threshold = argd['threshold']
-        except KeyError:
-            threshold = None
-
-        if surname:
-            DisambiguationTask(cluster=surname, threshold=threshold).schedule()
+            task = DisambiguationTask(cluster=surname, threshold=threshold)
+            task.schedule()
 
         ln = argd['ln']
 

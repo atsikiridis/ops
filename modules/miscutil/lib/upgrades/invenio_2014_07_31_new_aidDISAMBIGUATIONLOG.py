@@ -14,7 +14,7 @@ def do_upgrade():
   `phase` VARCHAR( 255 ),
   `progress` FLOAT( 8 ),
   `args` longblob NOT NULL,
-  `start_time` datetime NOT NULL,
+  `start_time` datetime,
   `end_time` datetime,
-  `status` enum('RUNNING', 'SUCEEDED', 'FAILED')
+  `status` enum('SCHEDULED', 'RUNNING', 'SUCEEDED', 'FAILED')
 ) ENGINE=MyISAM""")

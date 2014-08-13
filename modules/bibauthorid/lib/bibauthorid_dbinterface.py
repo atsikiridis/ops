@@ -4930,13 +4930,17 @@ def update_disambiguation_task_status(task_id, status):
 
 
 def get_disambiguation_task_data(status=None):
-    base_query = """select taskid, phase, progress, args, start_time, end_time
+    base_query = """select taskid, surname, phase, progress, args, start_time, end_time
                     from aidDISAMBIGUATIONLOG"""
     try:
         query = ' '.join([base_query, "where status=%s"])
-        task_data = run_sql(query, (status,))
+        task_data = list(run_sql(query, (status,)))
     except IndexError:
-        task_data = run_sql(base_query)
+        task_data = list(run_sql(base_query))
+
+    for index, data in enumerate(task_data) :
+        task_data[index] = [deserialize(el) if i== 4 else el
+                            for i, el in enumerate(list(data))]
 
     return task_data
 
@@ -4955,6 +4959,12 @@ def get_task_id_by_cluster_name(cluster):
         return run_sql(query, (cluster,))[0][0]
     except IndexError:
         pass
+
+
+def get_scheduled_taskid_for_name(name):
+    query = """select taskid from aidDISAMBIGUATIONLOG where status='SCHEDULED'
+               and surname = %s"""
+    return run_sql(query, (name,))[0][0]
 
 
 class TaskNotRegisteredError(Exception):

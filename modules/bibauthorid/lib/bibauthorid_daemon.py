@@ -35,7 +35,7 @@ from invenio.bibauthorid_backinterface import get_authors_of_claimed_paper
 from invenio.bibauthorid_backinterface import get_claimed_papers_from_papers
 from invenio.bibauthorid_affiliations import process_affiliations
 from invenio.bibauthorid_backinterface import get_all_valid_bibrecs
-
+from invenio.bibauthorid_disambiguation import monitored_disambiguation
 
 def bibauthorid_daemon():
     """Constructs the Bibauthorid bibtask."""
@@ -111,7 +111,8 @@ Examples:
                                        "from-scratch",
                                        "last-names=",
                                        "st",
-                                       "single-threaded"
+                                       "single-threaded",
+                                       "monitored"
                                        ]),
                       task_submit_elaborate_specific_parameter_fnc=_task_submit_elaborate_specific_parameter,
                       task_submit_check_options_fnc=_task_submit_check_options,
@@ -150,6 +151,8 @@ def _task_submit_elaborate_specific_parameter(key, value, opts, args):
         bibtask.task_set_option("last-names", value)
     elif key in ("--single-threaded",):
         bibtask.task_set_option("single-threaded", True)
+    elif key in ("--monitored",):
+        bibtask.task_set_option("monitored", True)
     else:
         return False
 
@@ -177,6 +180,7 @@ def _task_run_core():
         last_names = bibtask.task_get_option('last-names')
         from_scratch = True   # TODO Pay attention to this after we are sure we want aid_tables disambiguation. 
         single_threaded = bool(bibtask.task_get_option("single-threaded"))
+        monitored = bool(bibtask.task_get_option("monitored"))
         if single_threaded and not last_names:
             bibtask.write_message("""--single-threaded will not be considered
                                      as there are no last names specified.""")
@@ -358,6 +362,7 @@ def run_rabbit(paperslist, all_records=False):
             partial=True)
 
 
+@monitored_disambiguation
 def run_tortoise(from_scratch, last_names_thresholds=None,
                  single_threaded=False):
 
