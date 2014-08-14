@@ -24,9 +24,9 @@ Bibauthorid Daemon
 
 import sys
 import os
+
 from invenio import bibauthorid_config as bconfig
 from invenio import bibtask
-
 from invenio.bibauthorid_backinterface import get_modified_papers_since
 from invenio.bibauthorid_backinterface import get_user_logs
 from invenio.bibauthorid_backinterface import insert_user_log
@@ -35,7 +35,8 @@ from invenio.bibauthorid_backinterface import get_authors_of_claimed_paper
 from invenio.bibauthorid_backinterface import get_claimed_papers_from_papers
 from invenio.bibauthorid_affiliations import process_affiliations
 from invenio.bibauthorid_backinterface import get_all_valid_bibrecs
-from invenio.bibauthorid_disambiguation import monitored_disambiguation
+from invenio.bibauthorid_disambiguation import MonitoredDisambiguation
+
 
 def bibauthorid_daemon():
     """Constructs the Bibauthorid bibtask."""
@@ -187,7 +188,8 @@ def _task_run_core():
         if last_names:
             last_names_thresholds = _group_last_names(last_names)
             bibtask.task_update_progress('Performing disambiguation on specific last names.')
-            run_tortoise(from_scratch, last_names_thresholds, single_threaded)
+            #raise Exception("BEFORE", last_names_thresholds)
+            run_tortoise(from_scratch, last_names_thresholds=last_names_thresholds, single_threaded=single_threaded)
             bibtask.task_update_progress('Disambiguation on specific last names finished!')
         else:
             bibtask.task_update_progress('Performing full disambiguation...')
@@ -362,7 +364,7 @@ def run_rabbit(paperslist, all_records=False):
             partial=True)
 
 
-@monitored_disambiguation
+@MonitoredDisambiguation
 def run_tortoise(from_scratch, last_names_thresholds=None,
                  single_threaded=False):
 

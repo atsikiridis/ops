@@ -16,5 +16,5 @@ def do_upgrade():
   `args` longblob NOT NULL,
   `start_time` datetime,
   `end_time` datetime,
-  `status` enum('SCHEDULED', 'RUNNING', 'SUCEEDED', 'FAILED')
+  `status` enum('SCHEDULED', 'RUNNING', 'SUCCEEDED', 'FAILED')
 ) ENGINE=MyISAM""")

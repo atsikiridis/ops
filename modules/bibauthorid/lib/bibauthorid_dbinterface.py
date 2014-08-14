@@ -4924,14 +4924,21 @@ def add_new_disambiguation_task(task_id, cluster, name_of_user, threshold,
 
 
 def update_disambiguation_task_status(task_id, status):
-    print "YO UPDATE", status, task_id
     run_sql("update aidDISAMBIGUATIONLOG set status=%s where taskid=%s",
             (status, task_id))
+            
+def set_task_start_time(task_id, start_time):
+    run_sql("update aidDISAMBIGUATIONLOG set start_time=%s where taskid=%s",
+            (start_time, task_id))
+
+def set_task_end_time(task_id, end_time):
+    run_sql("update aidDISAMBIGUATIONLOG set end_time=%s where taskid=%s",
+            (end_time, task_id))
 
 
 def get_disambiguation_task_data(status=None):
-    base_query = """select taskid, surname, phase, progress, args, start_time, end_time
-                    from aidDISAMBIGUATIONLOG"""
+    base_query = """select taskid, surname, phase, progress, args, start_time,
+                    end_time from aidDISAMBIGUATIONLOG"""
     try:
         query = ' '.join([base_query, "where status=%s"])
         task_data = list(run_sql(query, (status,)))
