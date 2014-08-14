@@ -1,5 +1,4 @@
 """Classes for disambiguation scheduling and monitoring."""
-from invenio import bibtask
 
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
 
@@ -8,10 +7,9 @@ from invenio.bibauthorid_templates import initialize_jinja2_environment
 from invenio.bibauthorid_templates import load_named_template
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
 from invenio.bibauthorid_dbinterface import get_status_of_task_by_task_id
-from invenio.bibauthorid_dbinterface import get_task_id_by_cluster_name
+from invenio.bibauthorid_dbinterface import get_running_task_id_by_cluster_name
 from invenio.bibauthorid_dbinterface import add_new_disambiguation_task
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_data
-from invenio.bibauthorid_dbinterface import get_scheduled_taskid_for_name
 from invenio.bibauthorid_dbinterface import set_task_start_time
 from invenio.bibauthorid_dbinterface import set_task_end_time
 
@@ -40,7 +38,7 @@ def _schedule_disambiguation(cluster, name_of_user, threshold):
     """
     last_names = '--last-names=%s:%s' % (cluster, threshold)
     params = ('bibauthorid', name_of_user, '--disambiguate',
-              '--single-threaded', last_names)
+              '--single-threaded', '--monitored', last_names)
     return task_low_level_submission(*params)
 
 
@@ -50,16 +48,24 @@ class MonitoredDisambiguation(object):
         self._func = func
 
     def __call__(self, *args, **kwargs):
-        # Make sure it's unmonitored when not web interface. monitored
-        name = kwargs['last_names_thresholds'].keys()[0]
-        task_id = get_scheduled_taskid_for_name(name)
+        if not 'monitored' in kwargs:
+            del kwargs['monitored']
+            return self._func(*args, **kwargs)
+        del kwargs['monitored']
+
+        try:
+            name = kwargs['last_names_thresholds'].keys()[0]
+        except AttributeError:
+            name = args[1].keys()[0]
+
+        task_id = get_running_task_id_by_cluster_name(name)
         set_task_start_time(task_id, datetime.now())
         update_disambiguation_task_status(task_id, 'RUNNING')
         try:
             value = self._func(*args, **kwargs)
-        except Exception:
+        except Exception, e:
             update_disambiguation_task_status(task_id, 'FAILED')
-            raise Exception()
+            raise e
             # TODO get failure info.
         set_task_end_time(task_id, datetime.now())
         update_disambiguation_task_status(task_id, 'SUCCEEDED')
@@ -73,8 +79,7 @@ class DisambiguationTask(object):
     """
 
     def __init__(self, task_id=None, cluster=None, name_of_user='admin',
-                 threshold=WEDGE_THRESHOLD, phase=None, progress=0.0,
-                 start_time=None, end_time=None):
+                 threshold=WEDGE_THRESHOLD):
         try:
             assert task_id or cluster
         except AssertionError:
@@ -84,10 +89,6 @@ class DisambiguationTask(object):
         self._cluster = cluster
         self._name_of_user = name_of_user
         self._threshold = threshold
-        self._phase = phase
-        self._progress = progress
-        self._start_time = start_time
-        self._end_time = end_time
 
     def schedule(self):
         """
@@ -101,7 +102,6 @@ class DisambiguationTask(object):
         self.task_id = _schedule_disambiguation(self._cluster,
                                                 self._name_of_user,
                                                 self._threshold)
-        update_disambiguation_task_status(self.task_id, 'SCHEDULED')
 
     def kill(self):
         if self.running:
@@ -126,7 +126,7 @@ class DisambiguationTask(object):
         if self._task_id:
             return self._task_id
 
-        task_id_in_db = get_task_id_by_cluster_name(self._cluster)
+        task_id_in_db = get_running_task_id_by_cluster_name(self._cluster)
         if task_id_in_db:
             self._task_id = task_id_in_db
             return self._task_id
@@ -139,8 +139,7 @@ class DisambiguationTask(object):
     def task_id(self, task_id):
         self._task_id = task_id
         add_new_disambiguation_task(self._task_id, self._cluster,
-                                    self._name_of_user, self._threshold,
-                                    self._start_time, self._end_time)
+                                    self._name_of_user, self._threshold)
 
 
 class WebAuthorDashboard(WebInterfaceDirectory):
@@ -158,6 +157,7 @@ class WebAuthorDashboard(WebInterfaceDirectory):
     def __call__(self, req, form):
         webapi.session_bareinit(req)
         session = get_session(req)
+        print session
         if not session['personinfo']['ulevel'] == 'admin':
             msg = "To access the disambiguation facility you should login."
             return page_not_authorized(req, text=msg)
@@ -169,7 +169,9 @@ class WebAuthorDashboard(WebInterfaceDirectory):
         surname = argd['surname']
         if surname:
             threshold = argd['threshold']
-            task = DisambiguationTask(cluster=surname, threshold=threshold)
+            username = session['nickname']
+            task = DisambiguationTask(cluster=surname, threshold=threshold,
+                                      name_of_user=username)
             task.schedule()
 
         ln = argd['ln']

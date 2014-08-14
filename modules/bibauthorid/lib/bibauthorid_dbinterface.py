@@ -4915,12 +4915,11 @@ def author_exists(personid):
 
 
 # Disambiguation web interface
-def add_new_disambiguation_task(task_id, cluster, name_of_user, threshold,
-                                start_time, end_time):
+def add_new_disambiguation_task(task_id, cluster, name_of_user, threshold):
     args = serialize({'threshold': threshold, 'user': name_of_user})
-    query = """insert into aidDISAMBIGUATIONLOG (taskid, surname, args,
-               start_time, end_time) values (%s, %s, %s, %s, %s)"""
-    run_sql(query, (task_id, cluster, args, start_time, end_time))
+    query = """insert into aidDISAMBIGUATIONLOG (taskid, surname, args)
+               values (%s, %s, %s)"""
+    run_sql(query, (task_id, cluster, args))
 
 
 def update_disambiguation_task_status(task_id, status):
@@ -4945,8 +4944,8 @@ def get_disambiguation_task_data(status=None):
     except IndexError:
         task_data = list(run_sql(base_query))
 
-    for index, data in enumerate(task_data) :
-        task_data[index] = [deserialize(el) if i== 4 else el
+    for index, data in enumerate(task_data):
+        task_data[index] = [deserialize(el) if i == 4 else el
                             for i, el in enumerate(list(data))]
 
     return task_data

@@ -67,13 +67,13 @@ Running Jobs
                {{ cluster }}<br>  
         </td>
         <td  width="16.6%" valign="top">
-               {{ phase }}  <progress value={{ progress }} max="1"><br>  
+               {{ phase }}  <progress value="{{ progress }}" max="1"></progress><br>
         </td>
         <td width="16.6%" valign="top">
                {{ args }}<br>  
         </td>
         <td width="16.6%" valign="top">               
-               {{ start.strftime('%Y-%m-%d') }} <br>
+               {{ start }} <br>
         </td>
         <td width="16.6%" valign="top">
                <button class="btn btn-default" type="submit" >
@@ -117,13 +117,13 @@ Completed Jobs
                {{ cluster }}<br>  
         </td>
         <td  width="16.6%" valign="top">
-               {{ phase }}  <progress value={{ progress }} max="1"><br>  
+               {{ phase }}  <progress value="{{ progress }}" max="1"></progress><br>
         </td>
         <td width="16.6%" valign="top">
                {{ args }}<br>  
         </td>
         <td width="16.6%" valign="top">
-               {{ start.strftime('%Y-%m-%d') }} <br>  
+               {{ start }} <br>
         </td>
         <td width="16.6%" valign="top">
                {{ end }} <br>  
@@ -166,13 +166,13 @@ Failed Jobs
                {{ cluster }}<br>  
         </td>
         <td  width="16.6%" valign="top">
-               {{ phase }}  <progress value={{ progress }} max="1"><br>  
+               {{ phase }}  <progress value="{{ progress }}" max="1"></progress><br>
         </td>
         <td width="16.6%" valign="top">
                {{ args }}<br>  
         </td>
         <td width="16.6%" valign="top">
-               {{ start.strftime('%Y-%m-%d') }} <br>  
+               {{ start }} <br>
         </td>
         <td width="16.6%" valign="top">
                {{ end }} <br>

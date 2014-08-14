@@ -92,6 +92,8 @@ Examples:
 
                             For example: --last-names=surname1,surname2:0.5,surname3:0.3,surname4
 
+      --monitored           Runs disambiguation with logging status updates of task in aidDISAMBIGUATIONLOG.
+
       Option for last-names
         (default)                 Runs in multi-threaded mode.
 
@@ -181,15 +183,14 @@ def _task_run_core():
         last_names = bibtask.task_get_option('last-names')
         from_scratch = True   # TODO Pay attention to this after we are sure we want aid_tables disambiguation. 
         single_threaded = bool(bibtask.task_get_option("single-threaded"))
-        monitored = bool(bibtask.task_get_option("monitored"))
         if single_threaded and not last_names:
             bibtask.write_message("""--single-threaded will not be considered
                                      as there are no last names specified.""")
         if last_names:
+            monitored = bool(bibtask.task_get_option("monitored"))
             last_names_thresholds = _group_last_names(last_names)
             bibtask.task_update_progress('Performing disambiguation on specific last names.')
-            #raise Exception("BEFORE", last_names_thresholds)
-            run_tortoise(from_scratch, last_names_thresholds=last_names_thresholds, single_threaded=single_threaded)
+            run_tortoise(from_scratch, last_names_thresholds=last_names_thresholds, single_threaded=single_threaded, monitored=True)
             bibtask.task_update_progress('Disambiguation on specific last names finished!')
         else:
             bibtask.task_update_progress('Performing full disambiguation...')
