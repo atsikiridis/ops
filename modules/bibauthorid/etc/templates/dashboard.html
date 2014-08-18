@@ -58,9 +58,8 @@ Running Jobs
         </td>
     </tr>
     {% for bibsched_id, cluster, phase, progress, args, start, end in running_disambiguation_tasks %}
-    <form class="task-form" method="post" action="" >
     <tr>
-        <td width="16.6%" valign="top" name="task-id">
+        <td width="16.6%" valign="top">
                {{ bibsched_id }}<br>  
         </td>
         <td  width="16.6%" valign="top">
@@ -76,11 +75,14 @@ Running Jobs
                {{ start }} <br>
         </td>
         <td width="16.6%" valign="top">
-               <button class="btn btn-default" type="submit" >
+               <form name="kill-form" action="" method="post">
+                    <input type="hidden" name="kill-task-id" value="{{ bibsched_id }}" />
+                <button class="btn btn-default" type="submit" >
                     <span class="glyphicon glyphicon-search"></span>Kill
-               </button> <br>  
+                </button>
+               </form>
+        </td>
     </tr>
-    </form>
     {% endfor %}
 </table>
 
@@ -110,7 +112,7 @@ Completed Jobs
     </tr>
     {% for bibsched_id, cluster, phase, progress, args, start, end in completed_disambiguation_tasks %}
     <tr>
-        <td width="16.6%" valign="top" name="task-id">
+        <td width="16.6%" valign="top">
                {{ bibsched_id }}<br>  
         </td>
         <td  width="16.6%" valign="top">

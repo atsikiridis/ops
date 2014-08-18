@@ -4959,12 +4959,12 @@ def get_status_of_task_by_task_id(task_id):
         raise TaskNotRegisteredError
 
 
-def get_task_id_by_cluster_name(cluster):
+def get_running_task_id_by_cluster_name(cluster):
     try:
-        query = "select taskid from aidDISAMBIGUATIONLOG where cluster=%s"
+        query = "select taskid from aidDISAMBIGUATIONLOG where surname=%s"
         return run_sql(query, (cluster,))[0][0]
     except IndexError:
-        pass
+        raise Exception("")
 
 
 def get_scheduled_taskid_for_name(name):

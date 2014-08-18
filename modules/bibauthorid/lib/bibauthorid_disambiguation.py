@@ -48,7 +48,7 @@ class MonitoredDisambiguation(object):
         self._func = func
 
     def __call__(self, *args, **kwargs):
-        if not 'monitored' in kwargs:
+        if not ('monitored' in kwargs and kwargs['monitored']):
             del kwargs['monitored']
             return self._func(*args, **kwargs)
         del kwargs['monitored']
@@ -59,11 +59,13 @@ class MonitoredDisambiguation(object):
             name = args[1].keys()[0]
 
         task_id = get_running_task_id_by_cluster_name(name)
+
         set_task_start_time(task_id, datetime.now())
         update_disambiguation_task_status(task_id, 'RUNNING')
         try:
             value = self._func(*args, **kwargs)
         except Exception, e:
+            set_task_end_time(task_id, datetime.now())
             update_disambiguation_task_status(task_id, 'FAILED')
             raise e
             # TODO get failure info.
@@ -105,7 +107,8 @@ class DisambiguationTask(object):
 
     def kill(self):
         if self.running:
-            bibsched_send_signal(self.task_id, SIGTERM)
+            bibsched_send_signal(int(self.task_id), SIGTERM)
+            update_disambiguation_task_status(self.task_id, 'FAILED')  # TODO killed
         else:
             raise TaskNotRunningError()
 
@@ -155,24 +158,29 @@ class WebAuthorDashboard(WebInterfaceDirectory):
             return
 
     def __call__(self, req, form):
+        print form
         webapi.session_bareinit(req)
         session = get_session(req)
-        print session
         if not session['personinfo']['ulevel'] == 'admin':
             msg = "To access the disambiguation facility you should login."
             return page_not_authorized(req, text=msg)
 
         argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG),
                                    'surname': (str, None),
-                                   'threshold': (str, None)})
+                                   'threshold': (str, None),
+                                   'kill-task-id': (str, False)})
 
         surname = argd['surname']
         if surname:
             threshold = argd['threshold']
-            username = session['nickname']
+            username = session['user_info']['nickname']
             task = DisambiguationTask(cluster=surname, threshold=threshold,
                                       name_of_user=username)
             task.schedule()
+
+        task_to_kill = argd['kill-task-id']
+        if task_to_kill:
+            DisambiguationTask(task_id=task_to_kill).kill()
 
         ln = argd['ln']
 
