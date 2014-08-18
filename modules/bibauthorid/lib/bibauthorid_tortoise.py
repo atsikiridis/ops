@@ -140,7 +140,7 @@ def tortoise_last_name(name, wedge_threshold=None, from_mark=True, pure=False):
         cluster_set = cluster()
         logger.log("Found, %s(%s). Total number of bibs: %d." % (name, lname, size))
         create_matrix(cluster_set, False)
-        wedge_and_store(cluster_set)
+        wedge_and_store(cluster_set, wedge_threshold)
     except (IndexError, ValueError):
         logger.log("Sorry, %s not found in the last name clusters" % (lname))
 
