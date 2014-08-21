@@ -4959,19 +4959,18 @@ def get_status_of_task_by_task_id(task_id):
         raise TaskNotRegisteredError
 
 
-def get_running_task_id_by_cluster_name(cluster):
+def get_task_id_by_cluster_name(cluster, status=None):
+    query = "select taskid from aidDISAMBIGUATIONLOG where surname=%s"
     try:
-        query = "select taskid from aidDISAMBIGUATIONLOG where surname=%s"
+        if status:
+            query = " ".join([query, "and status=%s"])
+            return run_sql(query, (cluster, status))[0][0]
         return run_sql(query, (cluster,))[0][0]
     except IndexError:
-        raise Exception("")
-
-
-def get_scheduled_taskid_for_name(name):
-    query = """select taskid from aidDISAMBIGUATIONLOG where status='SCHEDULED'
-               and surname = %s"""
-    return run_sql(query, (name,))[0][0]
-
+        msg = "No task for cluster = %s" % cluster
+        if status:
+            msg = ' '.join([msg, 'and status = %s' % status])
+        raise TaskNotRegisteredError(msg)
 
 class TaskNotRegisteredError(Exception):
     '''
@@ -4992,4 +4991,88 @@ class TaskNotRunningError(Exception):
     '''
     To be raised when task is not running.
     '''
+    pass
+
+
+# Disambiguation statistics
+
+def get_number_of_profiles(name):
+    """
+    (aidPERSONIDPAPERS, after disambiguation)
+    :param name:
+    :return:
+    """
+    return _count_profiles(name), _count_disambiguation_profiles(name)
+
+
+def _count_profiles(name):
+    return run_sql("""select count(distinct personid) from aidRESULTS
+                      where personid like %s """, (name + '.%',))[0][0]
+
+
+def _count_disambiguation_profiles(name):
+    return run_sql("""select count(distinct personid) from aidPERSONIDPAPERS
+                      where m_name like %s """, (name + ',%',))[0][0]
+
+def _get_no_of_disambiguation_papers(name):
+    return run_sql("""select count(distinct bibrec) from aidRESULTS
+                      where personid like %s """, (name + '.%',))
+
+def get_papers_per_disambiguation_cluster(name):
+    no_of_papers = _get_no_of_disambiguation_papers(name)
+    return no_of_papers / _count_disambiguation_profiles(name)
+
+
+def get_first_clusters_of_disambiguation(name, ascending=False, percentage=0.1):
+    """
+    param taskid: 10 %
+    """
+    ten_perc_papers = _get_no_of_disambiguation_papers(name) * percentage
+    if ascending:
+        order = 'asc'
+    else:
+        order = 'desc'
+    return run_sql("""select distinct personid, count(bibrec) as total
+                      from aidRESULTS where personid like %s group by personid
+                      order by total &s limit %s""",
+                   (name+'.%', order, ten_perc_papers))
+
+
+def get_ratio_of_claims(name):
+    """
+    """
+    claimed = run_sql(""" select  r.personid , count( distinct r.bibrec) from
+                          aidRESULTS as r, aidPERSONIDPAPERS as p  where
+                          r.bibref_value = p.bibref_value  and r.personid like
+                          %s and flag=2  group by r.personid""",
+                      (name + '.%',))
+
+    unclaimed = run_sql(""" select  r.personid , count( distinct r.bibrec) from
+                            aidRESULTS as r, aidPERSONIDPAPERS as p  where
+                            r.bibref_value = p.bibref_value  and r.personid
+                            like %s and flag<>2  group by r.personid""",
+                        (name + '.%',))
+    ratios = list()
+    for uncl in unclaimed:
+        for cl in claimed:
+            if uncl[0] == cl[0]:
+                ratios.append((cl[0], cl[1] / uncl[1]))
+    return ratios
+
+
+
+def get_unmodified_profiles(task_id):
+    """
+    untouched in merge
+    """
+    pass
+
+
+def get_abandoned_profiles(taks_id):
+    """
+    All profiles
+
+    :param taks_id:
+    :return:
+    """
     pass

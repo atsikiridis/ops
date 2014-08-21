@@ -7,9 +7,9 @@ from invenio.bibauthorid_templates import initialize_jinja2_environment
 from invenio.bibauthorid_templates import load_named_template
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
 from invenio.bibauthorid_dbinterface import get_status_of_task_by_task_id
-from invenio.bibauthorid_dbinterface import get_running_task_id_by_cluster_name
 from invenio.bibauthorid_dbinterface import add_new_disambiguation_task
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_data
+from invenio.bibauthorid_dbinterface import get_task_id_by_cluster_name
 from invenio.bibauthorid_dbinterface import set_task_start_time
 from invenio.bibauthorid_dbinterface import set_task_end_time
 
@@ -58,7 +58,7 @@ class MonitoredDisambiguation(object):
         except AttributeError:
             name = args[1].keys()[0]
 
-        task_id = get_running_task_id_by_cluster_name(name)
+        task_id = get_task_id_by_cluster_name(name, "SCHEDULED")
 
         set_task_start_time(task_id, datetime.now())
         update_disambiguation_task_status(task_id, 'RUNNING')
@@ -108,7 +108,7 @@ class DisambiguationTask(object):
     def kill(self):
         if self.running:
             bibsched_send_signal(int(self.task_id), SIGTERM)
-            update_disambiguation_task_status(self.task_id, 'FAILED')  # TODO killed
+            update_disambiguation_task_status(self.task_id, 'FAILED')  # TODO  add killed status
         else:
             raise TaskNotRunningError()
 
@@ -129,7 +129,7 @@ class DisambiguationTask(object):
         if self._task_id:
             return self._task_id
 
-        task_id_in_db = get_running_task_id_by_cluster_name(self._cluster)
+        task_id_in_db = get_task_id_by_cluster_name(self._cluster, "RUNNING")
         if task_id_in_db:
             self._task_id = task_id_in_db
             return self._task_id
