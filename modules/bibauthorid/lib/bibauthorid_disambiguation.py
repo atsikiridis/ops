@@ -4,7 +4,6 @@ from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
 
 from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, WEDGE_THRESHOLD
 from invenio.bibauthorid_templates import initialize_jinja2_environment
-from invenio.bibauthorid_templates import load_named_template
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
 from invenio.bibauthorid_dbinterface import get_status_of_task_by_task_id
 from invenio.bibauthorid_dbinterface import add_new_disambiguation_task
@@ -12,10 +11,10 @@ from invenio.bibauthorid_dbinterface import get_disambiguation_task_data
 from invenio.bibauthorid_dbinterface import get_task_id_by_cluster_name
 from invenio.bibauthorid_dbinterface import set_task_start_time
 from invenio.bibauthorid_dbinterface import set_task_end_time
-
 from invenio.bibauthorid_dbinterface import TaskNotRegisteredError
 from invenio.bibauthorid_dbinterface import TaskNotRunningError
 from invenio.bibauthorid_dbinterface import TaskAlreadyRunningError
+from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.webuser import page_not_authorized, get_session
 import invenio.bibauthorid_webapi as webapi
@@ -26,7 +25,6 @@ from invenio.config import CFG_SITE_LANG
 from invenio.webpage import page
 
 from datetime import datetime
-
 
 from signal import SIGTERM
 
@@ -158,7 +156,6 @@ class WebAuthorDashboard(WebInterfaceDirectory):
             return
 
     def __call__(self, req, form):
-        print form
         webapi.session_bareinit(req)
         session = get_session(req)
         if not session['personinfo']['ulevel'] == 'admin':
@@ -193,13 +190,11 @@ class WebAuthorDashboard(WebInterfaceDirectory):
                    'failed_disambiguation_tasks': failed}
 
         page_title = "Disambiguation Dashboard"
-        loaded_template = load_named_template("dashboard",
-                                              WebAuthorDashboard._environment)
-        body = loaded_template.render(content)
+        web_page = WebProfilePage('dashboard', page_title)
 
         return page(title=page_title,
-                    metaheaderadd="",
-                    body=body,
+                    metaheaderadd=web_page.get_head().encode('utf-8'),
+                    body=web_page.get_wrapped_body('dashboard', content),
                     req=req,
                     language=ln,
                     show_title_p=False)

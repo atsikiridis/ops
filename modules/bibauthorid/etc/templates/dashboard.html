@@ -1,34 +1,34 @@
-
-
-Run Disambiguation
+{% extends "index.html" %}
+{% block content %}
 <br><br>
 
+<div class="col-md-offset-1 col-md-10">
+    <form class="disambiguate-form form-inline" method="post" action="" >
+        <table class="table condensed well inspire-well" width="100%" cellpadding="0" cellspacing="10" border="0">
+            {% for n in range(1) %}
+            <tr>
+                <td valign="top">
+                       Surname: <input type="text" name="surname"><br>
+                </td>
+                <td valign="top">
+                       Threshold: <input type="text" name="threshold"><br>
+                </td>
 
-<form class="disambiguate-form" method="post" action="" >
-    <table width="100%" cellpadding="0" cellspacing="10" border="1">
-        {% for n in range(1) %}
-        <tr>
-            <td width="50%" valign="top">
-                   Surname: <input type="text" name="surname"><br>  
-            </td>
-            <td width="50%" valign="top">
-                   Threshold: <input type="text" name="threshold"><br>  
-            </td>
+                <td>
+                    <button class="btn btn-default" type="submit" >
+                        Disambiguate!
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <br><br>
+    </form>
 
-            <td>
-                <button class="btn btn-default" type="submit" >
-                    <span class="glyphicon glyphicon-search"></span>Disambiguate
-                </button>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>    
-    <br><br>
-</form>
 
 <form class="refresh-form" method="post" action="">
     <button class="btn btn-default" type="button" onclick="document.getElementsByClassName('refresh-form')[0].submit();">
-        <span class="glyphicon glyphicon-search"></span>Refresh
+        <span class="glyphicon glyphicon-refresh"></span>Refresh
     </button>
 </form>
 
@@ -36,7 +36,7 @@ Run Disambiguation
 
 
 Running Jobs
-<table width="100%" border="1">
+<table class="table-striped table-hover" width="100%" border="1">
     <tr>
         <td width="16.6%" valign="top">
                Bibsched Process id <br>  
@@ -78,7 +78,7 @@ Running Jobs
                <form name="kill-form" action="" method="post">
                     <input type="hidden" name="kill-task-id" value="{{ bibsched_id }}" />
                 <button class="btn btn-default" type="submit" >
-                    <span class="glyphicon glyphicon-search"></span>Kill
+                    Kill
                 </button>
                </form>
         </td>
@@ -90,7 +90,7 @@ Running Jobs
 
 Completed Jobs
 
-<table width="100%" border="1">
+<table class="table-striped table-hover" width="100%" border="1">
     <tr>
         <td width="16.6%" valign="top">
                Bibsched Process id <br>  
@@ -139,7 +139,7 @@ Completed Jobs
 
 Failed Jobs
 
-<table width="100%" border="1">
+<table class="table-striped table-hover" width="100%" border="1">
     <tr>
         <td width="16.6%" valign="top">
                Bibsched Process id <br>  
@@ -182,3 +182,5 @@ Failed Jobs
     </tr>
     {% endfor %}
 </table>
+</div>
+{% endblock %}

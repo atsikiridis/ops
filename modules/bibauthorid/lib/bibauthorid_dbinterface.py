@@ -35,15 +35,6 @@ from itertools import groupby, count, ifilter, chain, imap, repeat
 from operator import itemgetter
 
 from invenio.search_engine_utils import get_fieldvalues
-from invenio.access_control_engine import acc_authorize_action
-from invenio.config import CFG_SITE_URL
-
-from invenio.bibauthorid_name_utils import split_name_parts
-from invenio.bibauthorid_name_utils import create_canonical_name
-
-from invenio.dbquery import run_sql
-from invenio import bibtask
-
 from msgpack import packb as serialize
 from msgpack import unpackb as deserialize
 
@@ -53,7 +44,6 @@ except ImportError:
     from invenio.bibauthorid_general_utils import defaultdict
 
 from invenio.dbquery import run_sql
-from invenio.htmlutils import X
 from invenio.search_engine import perform_request_search, get_record
 from invenio.bibrecord import record_get_field_value, \
     record_get_field_instances
@@ -4647,7 +4637,7 @@ def remove_all_signatures_from_authors(pids):  # remove_personid_papers
                 % pids_sqlstr)
 
 
-def get_authors_by_surname(surname, limit_to_recid=False):  # find_pids_by_name
+def get_authors_by_surname(surname, limit_to_recid=False, use_m_name=False):  # find_pids_by_name
     '''
     Gets all authors who carry records with the specified surname.
 
@@ -4659,13 +4649,18 @@ def get_authors_by_surname(surname, limit_to_recid=False):  # find_pids_by_name
     '''
 
     if not limit_to_recid:
-        select_query = "select personid, name "
+        if use_m_name:
+            select_query = "select personid, m_name"
+        else:
+            select_query = "select personid, name"
     else:
-        select_query = "select personid "
+        select_query = "select personid"
 
-    return set(run_sql(select_query +
-                       """from aidPERSONIDPAPERS
-                          where name like %s""",
+    if use_m_name:
+        from_where_query = "from aidPERSONIDPAPERS where m_name like %s"
+    else:
+        from_where_query = "from aidPERSONIDPAPERS where name like %s"
+    return set(run_sql(" ".join([select_query, from_where_query]),
                        (surname + ',%',)))
 
 
@@ -5002,44 +4997,43 @@ def get_number_of_profiles(name):
     :param name:
     :return:
     """
-    return _count_profiles(name), _count_disambiguation_profiles(name)
+    real_profs = len(get_authors_by_surname(name, limit_to_recid=True,
+                                            use_m_name=True))
+    disambiguated_profs = len(get_disambiguation_profiles(name))
+    return real_profs, disambiguated_profs
 
-
-def _count_profiles(name):
-    return run_sql("""select count(distinct personid) from aidRESULTS
-                      where personid like %s """, (name + '.%',))[0][0]
-
-
-def _count_disambiguation_profiles(name):
-    return run_sql("""select count(distinct personid) from aidPERSONIDPAPERS
-                      where m_name like %s """, (name + ',%',))[0][0]
+def get_disambiguation_profiles(name):
+    return run_sql("""select distinct personid from aidRESULTS
+                      where personid like %s """, (name + '.%',))
 
 def _get_no_of_disambiguation_papers(name):
     return run_sql("""select count(distinct bibrec) from aidRESULTS
-                      where personid like %s """, (name + '.%',))
+                      where personid like %s """, (name + '.%',))[0][0]
 
 def get_papers_per_disambiguation_cluster(name):
     no_of_papers = _get_no_of_disambiguation_papers(name)
-    return no_of_papers / _count_disambiguation_profiles(name)
+    return no_of_papers / float(len(get_disambiguation_profiles(name)))
 
 
-def get_first_clusters_of_disambiguation(name, ascending=False, percentage=0.1):
+def get_first_clusters_of_disambiguation(name, ascending=False,
+                                         percentage=0.1):
     """
     param taskid: 10 %
     """
-    ten_perc_papers = _get_no_of_disambiguation_papers(name) * percentage
+    perc_papers = int(_get_no_of_disambiguation_papers(name) * percentage)
+    main_query = """select distinct personid, count(bibrec) as total
+                    from aidRESULTS where personid like %s group by personid"""
     if ascending:
-        order = 'asc'
+        order_query = 'order by count(bibrec) asc limit %s'
     else:
-        order = 'desc'
-    return run_sql("""select distinct personid, count(bibrec) as total
-                      from aidRESULTS where personid like %s group by personid
-                      order by total &s limit %s""",
-                   (name+'.%', order, ten_perc_papers))
+        order_query = 'order by count(bibrec) desc limit %s'
+    return run_sql(" ".join([main_query, order_query]),
+                   (name+'.%', perc_papers))
 
 
 def get_ratio_of_claims(name):
     """
+    claimed / unclaimed. TODO improve ?
     """
     claimed = run_sql(""" select  r.personid , count( distinct r.bibrec) from
                           aidRESULTS as r, aidPERSONIDPAPERS as p  where
@@ -5056,23 +5050,10 @@ def get_ratio_of_claims(name):
     for uncl in unclaimed:
         for cl in claimed:
             if uncl[0] == cl[0]:
-                ratios.append((cl[0], cl[1] / uncl[1]))
+                try:
+                    ratio = cl[1] / float(uncl[1])
+                except ZeroDivisionError:
+                    ratio = '-'
+                ratios.append((uncl[0], ratio))
+                break
     return ratios
-
-
-
-def get_unmodified_profiles(task_id):
-    """
-    untouched in merge
-    """
-    pass
-
-
-def get_abandoned_profiles(taks_id):
-    """
-    All profiles
-
-    :param taks_id:
-    :return:
-    """
-    pass
