@@ -4946,6 +4946,12 @@ def get_disambiguation_task_data(status=None):
     return task_data
 
 
+def get_disambiguation_task_stats(task_id):
+    query = "select stats from aidDISAMBIGUATIONSTATS where taskid=%s"
+    stats = run_sql(query, (task_id,))[0][0]
+    return deserialize(stats)
+
+
 def get_status_of_task_by_task_id(task_id):
     try:
         query = "select status from aidDISAMBIGUATIONLOG where taskid=%s"
@@ -4988,6 +4994,12 @@ class TaskNotRunningError(Exception):
     '''
     pass
 
+class TaskNotSuccessfulError(Exception):
+    """
+    To be raised when task not completed succesffully.
+    """
+    pass
+
 
 # Disambiguation statistics
 
@@ -5015,20 +5027,18 @@ def get_papers_per_disambiguation_cluster(name):
     return no_of_papers / float(len(get_disambiguation_profiles(name)))
 
 
-def get_first_clusters_of_disambiguation(name, ascending=False,
-                                         percentage=0.1):
+def get_most_changed_clusters_of_disambiguation(name, ascending=False):
     """
-    param taskid: 10 %
+    TODO most changed, not biggest!
     """
-    perc_papers = int(_get_no_of_disambiguation_papers(name) * percentage)
     main_query = """select distinct personid, count(bibrec) as total
                     from aidRESULTS where personid like %s group by personid"""
     if ascending:
-        order_query = 'order by count(bibrec) asc limit %s'
+        order_query = 'order by count(bibrec) asc limit 10'
     else:
-        order_query = 'order by count(bibrec) desc limit %s'
+        order_query = 'order by count(bibrec) desc limit 10'
     return run_sql(" ".join([main_query, order_query]),
-                   (name+'.%', perc_papers))
+                   (name+'.%',))
 
 
 def get_ratio_of_claims(name):

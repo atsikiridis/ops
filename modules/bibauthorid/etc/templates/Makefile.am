@@ -30,7 +30,8 @@ etc_DATA    = head.html \
             personal_details_box.html \
 	    autoclaim_box.html \
             help.html \
-	    dashboard.html
+	    dashboard.html \
+	    disambiguation.html
 
 EXTRA_DIST = $(etc_DATA)
 

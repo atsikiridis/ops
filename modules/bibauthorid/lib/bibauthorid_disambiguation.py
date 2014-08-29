@@ -14,6 +14,7 @@ from invenio.bibauthorid_dbinterface import set_task_end_time
 from invenio.bibauthorid_dbinterface import TaskNotRegisteredError
 from invenio.bibauthorid_dbinterface import TaskNotRunningError
 from invenio.bibauthorid_dbinterface import TaskAlreadyRunningError
+from invenio.bibauthorid_dbinterface import TaskNotSuccessfulError
 from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.webuser import page_not_authorized, get_session
@@ -21,8 +22,9 @@ import invenio.bibauthorid_webapi as webapi
 
 from invenio.bibtask import task_low_level_submission
 from invenio.bibsched import bibsched_send_signal
-from invenio.config import CFG_SITE_LANG
+from invenio.config import CFG_SITE_LANG, CFG_BASE_URL
 from invenio.webpage import page
+from invenio.urlutils import redirect_to_url
 
 from datetime import datetime
 
@@ -35,8 +37,11 @@ def _schedule_disambiguation(cluster, name_of_user, threshold):
     threshold as a parameter.
     """
     last_names = '--last-names=%s:%s' % (cluster, threshold)
+    current_time = datetime.now().strftime('%Y_%B_%d_%I_%M')
+    task_name = '_'.join(['disambiguate_author', cluster, current_time])
     params = ('bibauthorid', name_of_user, '--disambiguate',
-              '--single-threaded', '--monitored', last_names)
+              '--single-threaded', '--monitored', last_names, '--name',
+              task_name)
     return task_low_level_submission(*params)
 
 
@@ -89,6 +94,7 @@ class DisambiguationTask(object):
         self._cluster = cluster
         self._name_of_user = name_of_user
         self._threshold = threshold
+        self._statistics = None
 
     def schedule(self):
         """
@@ -106,14 +112,14 @@ class DisambiguationTask(object):
     def kill(self):
         if self.running:
             bibsched_send_signal(int(self.task_id), SIGTERM)
-            update_disambiguation_task_status(self.task_id, 'FAILED')  # TODO  add killed status
+            update_disambiguation_task_status(self.task_id, 'KILLED')
         else:
             raise TaskNotRunningError()
 
     @property
     def running(self):
         try:
-            status = get_status_of_task_by_task_id(self._task_id)
+            status = get_status_of_task_by_task_id(self.task_id)
         except TaskNotRegisteredError:
             return False
 
@@ -123,7 +129,7 @@ class DisambiguationTask(object):
         return False
 
     @property
-    def task_id(self):
+    def task_id(self):  # TODO Make it a retrieve function for consistency.
         if self._task_id:
             return self._task_id
 
@@ -141,6 +147,27 @@ class DisambiguationTask(object):
         self._task_id = task_id
         add_new_disambiguation_task(self._task_id, self._cluster,
                                     self._name_of_user, self._threshold)
+
+    def retrieve_statistics(self):
+
+        try:
+            return self._statistics
+        except AttributeError:
+            pass
+
+        try:
+            status = get_status_of_task_by_task_id(self.task_id)
+        except TaskNotRegisteredError, e:
+            raise e
+
+        if not status == 'SUCCEEDED':
+            msg = """The task with the id %s has not been completed
+                     successfully. Cannot retrieve statistics."""\
+                  % self.task_id
+            raise TaskNotSuccessfulError(msg)
+
+        self._statistics = get_disambiguation_task_stats(self.task_id)
+        return self._statistics
 
 
 class WebAuthorDashboard(WebInterfaceDirectory):
@@ -198,3 +225,45 @@ class WebAuthorDashboard(WebInterfaceDirectory):
                     req=req,
                     language=ln,
                     show_title_p=False)
+
+
+class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
+
+    def __init__(self, bibsched_id=None):
+        if not CFG_BIBAUTHORID_ENABLED:
+            return
+        self._task_id = bibsched_id
+
+    def __call__(self, req, form):
+        webapi.session_bareinit(req)
+        session = get_session(req)
+        if not session['personinfo']['ulevel'] == 'admin':
+            msg = "To access the disambiguation facility you should login."
+            return page_not_authorized(req, text=msg)
+        argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG)})
+
+        if self._task_id < 1:
+            redirect_to_url(req, CFG_BASE_URL + '/author/dashboard')
+        task = DisambiguationTask(task_id=self._task_id)
+        try:
+            stats = task.retrieve_statistics()
+        except TaskNotSuccessfulError:
+            msg = """There is not a successfully completed task with a task id
+                     of %s.""" % task.task_id
+            return page_not_authorized(req, msg)
+
+        page_title = "Disambiguation Results for task %s" % task.task_id
+        web_page = WebProfilePage('disambiguation', page_title)
+
+        stats = dict()   #  TEMPORARY
+        content = {'stats': stats}
+
+        return page(title=page_title,
+                    metaheaderadd=web_page.get_head().encode('utf-8'),
+                    body=web_page.get_wrapped_body('disambiguation', content),
+                    req=req,
+                    language=argd['ln'],
+                    show_title_p=False)
+
+    def _lookup(self, component, path):
+        return WebAuthorDisambiguationInfo(component), path

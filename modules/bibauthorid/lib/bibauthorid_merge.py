@@ -280,7 +280,7 @@ def merge_static():
     update_canonical_names_of_authors()
 
 
-def merge_dynamic():
+def merge_dynamic(lname=None):
     '''
         This function merges aidPERSONIDPAPERS with aidRESULTS.
         Use it after tortoise.
@@ -288,7 +288,10 @@ def merge_dynamic():
         hence the claiming faciity for example can stay online during the merge. This comfort
         however is paid off in term of speed.
     '''
-    last_names = frozenset(name[0].split('.')[0] for name in get_cluster_names())
+    if lname:
+        last_names = [lname]
+    else:
+        last_names = frozenset(name[0].split('.')[0] for name in get_cluster_names())
 
     def get_free_pids():
         while True:
@@ -426,6 +429,14 @@ def get_unmatched_clusters(best_match_matrix, results):
         imap(itemgetter(0), [x for x in best_match_matrix if x[2] > 0]))
 
 
+def get_new_clusters(name):
+    pids_in_aidpersonidpapers = get_authors_by_surname(name,
+                                                       limit_to_recid=True)
+    pids_in_aidpersonidpapers = set(p[0] for p in pids_in_aidpersonidpapers)
+    results = get_signatures_for_merge_cluster_by_surname(name)
+    best_match, old_pids = get_merge_matching_matrix_and_pids(results)
+
+
 def get_abandoned_profiles(name):
     """
         For a given surname, returns the personids that are not included in
@@ -456,17 +467,21 @@ def get_unmodified_profiles(name):
     for pid in matched_per_pid.keys():
         papers = [paper[0] for paper in get_papers_of_author(pid,
                                                              include_rejected=True)]
-        if papers == matched_per_pid[pid]:
+        if set(papers) == set(matched_per_pid[pid]):
             unmodified.add(pid)
     return unmodified
 
-def matched_claims(inspect=None):
+def matched_claims(lname=None, inspect=None):
     '''
         Checks how many claims are violated in aidRESULTS.
         Returs the number of preserved and the total number of claims.
     '''
 
-    last_names = frozenset(name[0].split('.')[0] for name in get_cluster_names())
+    if lname:
+        last_names = [lname]
+    else:
+        last_names = frozenset(name[0].split('.')[0]
+                               for name in get_cluster_names())
     r_match = 0
     r_total = 0
 

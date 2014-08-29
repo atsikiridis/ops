@@ -27,7 +27,7 @@ from cgi import escape
 from pprint import pformat
 from operator import itemgetter
 import re
-
+from invenio.bibauthorid_disambiguation import WebAuthorDisambiguationInfo
 try:
     from invenio.jsonutils import json, json_unicode_to_utf8, CFG_JSON_AVAILABLE
 except ImportError:
@@ -3460,6 +3460,7 @@ class WebInterfaceAuthor(WebInterfaceDirectory):
         /author/search
         /author/ticket/
         /author/dashboard/
+        /author/disambiguation/
     '''
     _exports = ['',
                 'choose_profile',
@@ -3471,7 +3472,8 @@ class WebInterfaceAuthor(WebInterfaceDirectory):
                 'search',
                 'search_ajax',
                 'ticket',
-                'dashboard']
+                'dashboard',
+                'disambiguation']
 
     from invenio.webauthorprofile_webinterface import WebAuthorPages
 
@@ -3485,6 +3487,7 @@ class WebInterfaceAuthor(WebInterfaceDirectory):
     search_ajax = WebAuthorSearch()
     ticket = WebInterfaceAuthorTicketHandling()
     dashboard = WebAuthorDashboard()
+    disambiguation = WebAuthorDisambiguationInfo()
 
     def _lookup(self, component, path):
         if component not in self._exports:
