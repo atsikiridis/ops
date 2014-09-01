@@ -15,6 +15,9 @@ from invenio.bibauthorid_dbinterface import TaskNotRegisteredError
 from invenio.bibauthorid_dbinterface import TaskNotRunningError
 from invenio.bibauthorid_dbinterface import TaskAlreadyRunningError
 from invenio.bibauthorid_dbinterface import TaskNotSuccessfulError
+from invenio.bibauthorid_dbinterface import register_disambiguation_statistics
+from invenio.bibauthorid_dbinterface import get_number_of_profiles
+from invenio.bibauthorid_dbinterface import get_disambiguation_task_stats
 from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.webuser import page_not_authorized, get_session
@@ -73,8 +76,20 @@ class MonitoredDisambiguation(object):
             raise e
             # TODO get failure info.
         set_task_end_time(task_id, datetime.now())
+        stats = MonitoredDisambiguation._calculate_stats(name)   # Last name is run ?
+        register_disambiguation_statistics(task_id, stats)
         update_disambiguation_task_status(task_id, 'SUCCEEDED')
         return value
+
+    @staticmethod
+    def _calculate_stats(name):
+        """
+        Gets data for current data in aidRESULTS.
+        """
+        stats = dict()
+        stats['Number of profiles'] = get_number_of_profiles(name)
+        # TODO put rest of stats.
+        return stats
 
 
 class DisambiguationTask(object):
@@ -148,12 +163,10 @@ class DisambiguationTask(object):
         add_new_disambiguation_task(self._task_id, self._cluster,
                                     self._name_of_user, self._threshold)
 
-    def retrieve_statistics(self):
+    def retrieve_statistics(self):  # db interface
 
-        try:
+        if self._statistics:
             return self._statistics
-        except AttributeError:
-            pass
 
         try:
             status = get_status_of_task_by_task_id(self.task_id)
@@ -255,7 +268,6 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         page_title = "Disambiguation Results for task %s" % task.task_id
         web_page = WebProfilePage('disambiguation', page_title)
 
-        stats = dict()   #  TEMPORARY
         content = {'stats': stats}
 
         return page(title=page_title,
@@ -266,4 +278,8 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
                     show_title_p=False)
 
     def _lookup(self, component, path):
+        """
+        Necessary for webstyle in order to be able to use
+        /author/disambiguation/1 etc.
+        """
         return WebAuthorDisambiguationInfo(component), path

@@ -4973,26 +4973,28 @@ def get_task_id_by_cluster_name(cluster, status=None):
             msg = ' '.join([msg, 'and status = %s' % status])
         raise TaskNotRegisteredError(msg)
 
+
 class TaskNotRegisteredError(Exception):
-    '''
+    """
     To be raised when a task has not been registered to the
     aidDISAMBIGUATIONLOG table.
-    '''
+    """
     pass
 
 
 class TaskAlreadyRunningError(Exception):
-    '''
+    """
     To be raised when task is already running.
-    '''
+    """
     pass
 
 
 class TaskNotRunningError(Exception):
-    '''
+    """
     To be raised when task is not running.
-    '''
+    """
     pass
+
 
 class TaskNotSuccessfulError(Exception):
     """
@@ -5002,25 +5004,31 @@ class TaskNotSuccessfulError(Exception):
 
 
 # Disambiguation statistics
+def register_disambiguation_statistics(task_id, stats):
+    stats_blob = serialize(stats)
+    q = "insert into aidDISAMBIGUATIONSTATS (taskid, stats) VALUES (%s, %s)"
+    run_sql(q, (task_id, stats_blob))
+
 
 def get_number_of_profiles(name):
     """
     (aidPERSONIDPAPERS, after disambiguation)
-    :param name:
-    :return:
     """
     real_profs = len(get_authors_by_surname(name, limit_to_recid=True,
                                             use_m_name=True))
     disambiguated_profs = len(get_disambiguation_profiles(name))
     return real_profs, disambiguated_profs
 
+
 def get_disambiguation_profiles(name):
     return run_sql("""select distinct personid from aidRESULTS
                       where personid like %s """, (name + '.%',))
 
+
 def _get_no_of_disambiguation_papers(name):
     return run_sql("""select count(distinct bibrec) from aidRESULTS
                       where personid like %s """, (name + '.%',))[0][0]
+
 
 def get_papers_per_disambiguation_cluster(name):
     no_of_papers = _get_no_of_disambiguation_papers(name)
