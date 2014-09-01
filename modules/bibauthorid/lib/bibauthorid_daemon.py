@@ -187,10 +187,9 @@ def _task_run_core():
             bibtask.write_message("""--single-threaded will not be considered
                                      as there are no last names specified.""")
         if last_names:
-            monitored = bool(bibtask.task_get_option("monitored"))
             last_names_thresholds = _group_last_names(last_names)
             bibtask.task_update_progress('Performing disambiguation on specific last names.')
-            run_tortoise(from_scratch, last_names_thresholds=last_names_thresholds, single_threaded=single_threaded, monitored=True)
+            run_tortoise(from_scratch, last_names_thresholds=last_names_thresholds, single_threaded=single_threaded)
             bibtask.task_update_progress('Disambiguation on specific last names finished!')
         else:
             bibtask.task_update_progress('Performing full disambiguation...')
@@ -365,7 +364,7 @@ def run_rabbit(paperslist, all_records=False):
             partial=True)
 
 
-@MonitoredDisambiguation
+@MonitoredDisambiguation(bool(bibtask.task_get_option("monitored")))
 def run_tortoise(from_scratch, last_names_thresholds=None,
                  single_threaded=False):
 

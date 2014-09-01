@@ -5035,7 +5035,7 @@ def get_papers_per_disambiguation_cluster(name):
     return no_of_papers / float(len(get_disambiguation_profiles(name)))
 
 
-def get_most_changed_clusters_of_disambiguation(name, ascending=False):
+def get_most_changed_clusters_of_disambiguation(name, ascending=False):  # remove ascending... add a seperate function
     """
     TODO most changed, not biggest!
     """
@@ -5049,7 +5049,7 @@ def get_most_changed_clusters_of_disambiguation(name, ascending=False):
                    (name+'.%',))
 
 
-def get_ratio_of_claims(name):
+def get_ratios_of_claims(name):
     """
     claimed / unclaimed. TODO improve ?
     """
@@ -5075,3 +5075,8 @@ def get_ratio_of_claims(name):
                 ratios.append((uncl[0], ratio))
                 break
     return ratios
+
+
+def get_average_ratio_of_claims(name):
+    ratios = [ratio for _, ratio in get_ratios_of_claims(name)]
+    return sum(ratios) / len(ratios)

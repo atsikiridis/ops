@@ -5,6 +5,8 @@ from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
 from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, WEDGE_THRESHOLD
 from invenio.bibauthorid_templates import initialize_jinja2_environment
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
+from invenio.bibauthorid_dbinterface import \
+    get_papers_per_disambiguation_cluster
 from invenio.bibauthorid_dbinterface import get_status_of_task_by_task_id
 from invenio.bibauthorid_dbinterface import add_new_disambiguation_task
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_data
@@ -18,10 +20,13 @@ from invenio.bibauthorid_dbinterface import TaskNotSuccessfulError
 from invenio.bibauthorid_dbinterface import register_disambiguation_statistics
 from invenio.bibauthorid_dbinterface import get_number_of_profiles
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_stats
+from invenio.bibauthorid_dbinterface import get_average_ratio_of_claims
+from invenio.bibauthorid_merge import get_matched_claims
+
 from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.webuser import page_not_authorized, get_session
-import invenio.bibauthorid_webapi as webapi
+import invenio.bibauthorid_webapi as web_api
 
 from invenio.bibtask import task_low_level_submission
 from invenio.bibsched import bibsched_send_signal
@@ -36,7 +41,7 @@ from signal import SIGTERM
 
 def _schedule_disambiguation(cluster, name_of_user, threshold):
     """
-    Runs the tortoise algorirthm for the cluster using the wedge
+    Runs the tortoise algorithm for the cluster using the wedge
     threshold as a parameter.
     """
     last_names = '--last-names=%s:%s' % (cluster, threshold)
@@ -50,19 +55,18 @@ def _schedule_disambiguation(cluster, name_of_user, threshold):
 
 class MonitoredDisambiguation(object):
 
-    def __init__(self, func):
+    def __init__(self, func, monitored):  # TODO Decouple from decorated function.
         self._func = func
+        self._monitored = monitored
 
     def __call__(self, *args, **kwargs):
-        if not ('monitored' in kwargs and kwargs['monitored']):
-            del kwargs['monitored']
+        if not self._monitored:
             return self._func(*args, **kwargs)
-        del kwargs['monitored']
 
         try:
-            name = kwargs['last_names_thresholds'].keys()[0]
+            name, threshold = kwargs['last_names_thresholds'].keys()
         except AttributeError:
-            name = args[1].keys()[0]
+            name, threshold = args[1].keys()
 
         task_id = get_task_id_by_cluster_name(name, "SCHEDULED")
 
@@ -76,19 +80,38 @@ class MonitoredDisambiguation(object):
             raise e
             # TODO get failure info.
         set_task_end_time(task_id, datetime.now())
-        stats = MonitoredDisambiguation._calculate_stats(name)   # Last name is run ?
+        stats = MonitoredDisambiguation._calculate_stats(task_id, name,
+                                                         threshold)
         register_disambiguation_statistics(task_id, stats)
         update_disambiguation_task_status(task_id, 'SUCCEEDED')
         return value
 
     @staticmethod
-    def _calculate_stats(name):
+    def _calculate_stats(task_id, name, threshold):
         """
         Gets data for current data in aidRESULTS.
         """
         stats = dict()
-        stats['Number of profiles'] = get_number_of_profiles(name)
-        # TODO put rest of stats.
+        stats['Task ID'] = task_id
+        stats['Name'] = name
+        stats['Wedge Threshold'] = threshold
+
+        profiles_before, profiles_after = get_number_of_profiles(name)
+        stats['Number of Profiles Before'] = profiles_before
+        stats['Number of Profiles After'] = profiles_after
+
+        avg_papers_title = 'Number of Papers per Disambiguation Cluster'
+        stats[avg_papers_title] = get_papers_per_disambiguation_cluster(name)
+
+        ratio_claims_title = 'Average Ratio of Claimed and Unclaimed Papers'
+        stats[ratio_claims_title] = get_average_ratio_of_claims(name)
+
+        preserved_claims, total_claims = get_matched_claims(name)
+        stats['Number of Preserved Claims'] = preserved_claims
+        stats['Number of Total Claims'] = total_claims
+        percentage = preserved_claims / float(total_claims) * 100
+        stats['Percentage of Preserved Claims'] = '%s %%' % percentage
+
         return stats
 
 
@@ -196,7 +219,7 @@ class WebAuthorDashboard(WebInterfaceDirectory):
             return
 
     def __call__(self, req, form):
-        webapi.session_bareinit(req)
+        web_api.session_bareinit(req)
         session = get_session(req)
         if not session['personinfo']['ulevel'] == 'admin':
             msg = "To access the disambiguation facility you should login."
@@ -248,7 +271,7 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         self._task_id = bibsched_id
 
     def __call__(self, req, form):
-        webapi.session_bareinit(req)
+        web_api.session_bareinit(req)
         session = get_session(req)
         if not session['personinfo']['ulevel'] == 'admin':
             msg = "To access the disambiguation facility you should login."
@@ -260,10 +283,10 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         task = DisambiguationTask(task_id=self._task_id)
         try:
             stats = task.retrieve_statistics()
-        except TaskNotSuccessfulError:
-            msg = """There is not a successfully completed task with a task id
+        except (TaskNotSuccessfulError, TaskNotRegisteredError):
+            msg = """There is no successfully completed task with a task id
                      of %s.""" % task.task_id
-            return page_not_authorized(req, msg)
+            return page_not_authorized(req, text=msg)
 
         page_title = "Disambiguation Results for task %s" % task.task_id
         web_page = WebProfilePage('disambiguation', page_title)

@@ -471,7 +471,7 @@ def get_unmodified_profiles(name):
             unmodified.add(pid)
     return unmodified
 
-def matched_claims(lname=None, inspect=None):
+def get_matched_claims(lname=None, inspect=None):
     '''
         Checks how many claims are violated in aidRESULTS.
         Returs the number of preserved and the total number of claims.
