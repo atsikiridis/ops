@@ -21,7 +21,12 @@ from invenio.bibauthorid_dbinterface import register_disambiguation_statistics
 from invenio.bibauthorid_dbinterface import get_number_of_profiles
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_stats
 from invenio.bibauthorid_dbinterface import get_average_ratio_of_claims
+from invenio.bibauthorid_dbinterface import \
+    get_most_modified_disambiguated_profiles as get_most_modified_profs
 from invenio.bibauthorid_merge import get_matched_claims
+from invenio.bibauthorid_merge import get_unmodified_profiles
+from invenio.bibauthorid_merge import get_abandoned_profiles
+from invenio.bibauthorid_merge import get_new_clusters
 
 from invenio.bibauthorid_templates import WebProfilePage
 
@@ -55,7 +60,7 @@ def _schedule_disambiguation(cluster, name_of_user, threshold):
 
 class MonitoredDisambiguation(object):
 
-    def __init__(self, func, monitored):  # TODO Decouple from decorated function.
+    def __init__(self, func, monitored):  # TODO Document last_names_thresholds
         self._func = func
         self._monitored = monitored
 
@@ -64,55 +69,80 @@ class MonitoredDisambiguation(object):
             return self._func(*args, **kwargs)
 
         try:
-            name, threshold = kwargs['last_names_thresholds'].keys()
-        except AttributeError:
-            name, threshold = args[1].keys()
+            name_threshold = kwargs['last_names_thresholds']
+            self._name, self._threshold = name_threshold.keys()
+        except AttributeError, e:
+            for index, arg_name in enumerate(self._func.func_code.co_varnames):
+                if arg_name == 'last_names_thresholds':
+                    self._name, self._threshold = args[index].keys()
+            try:
+                assert self._name and self._threshold
+            except AssertionError:
+                raise e
 
-        task_id = get_task_id_by_cluster_name(name, "SCHEDULED")
+        self._task_id = get_task_id_by_cluster_name(self._name, "SCHEDULED")
 
-        set_task_start_time(task_id, datetime.now())
-        update_disambiguation_task_status(task_id, 'RUNNING')
+        set_task_start_time(self._task_id, datetime.now())
+        update_disambiguation_task_status(self._task_id, 'RUNNING')
         try:
             value = self._func(*args, **kwargs)
         except Exception, e:
-            set_task_end_time(task_id, datetime.now())
-            update_disambiguation_task_status(task_id, 'FAILED')
+            set_task_end_time(self._task_id, datetime.now())
+            update_disambiguation_task_status(self._task_id, 'FAILED')
             raise e
             # TODO get failure info.
-        set_task_end_time(task_id, datetime.now())
-        stats = MonitoredDisambiguation._calculate_stats(task_id, name,
-                                                         threshold)
-        register_disambiguation_statistics(task_id, stats)
-        update_disambiguation_task_status(task_id, 'SUCCEEDED')
+        set_task_end_time(self._task_id, datetime.now())
+
+        statistics = dict()
+        statistics['stats'] = self._calculate_stats()
+        statistics['rankings'] = self._calculate_rankings()
+
+        register_disambiguation_statistics(self._task_id, statistics)
+
+        update_disambiguation_task_status(self._task_id, 'SUCCEEDED')
         return value
 
-    @staticmethod
-    def _calculate_stats(task_id, name, threshold):
+    def _calculate_stats(self):
         """
         Gets data for current data in aidRESULTS.
         """
         stats = dict()
-        stats['Task ID'] = task_id
-        stats['Name'] = name
-        stats['Wedge Threshold'] = threshold
+        stats['Task ID'] = self._task_id
+        stats['Name'] = self._name
+        stats['Wedge Threshold'] = self._threshold
 
-        profiles_before, profiles_after = get_number_of_profiles(name)
+        profiles_before, profiles_after = get_number_of_profiles(self._name)
         stats['Number of Profiles Before'] = profiles_before
         stats['Number of Profiles After'] = profiles_after
 
-        avg_papers_title = 'Number of Papers per Disambiguation Cluster'
-        stats[avg_papers_title] = get_papers_per_disambiguation_cluster(name)
+        avg_p_title = 'Number of Papers per Disambiguation Cluster'
+        stats[avg_p_title] = get_papers_per_disambiguation_cluster(self._name)
 
         ratio_claims_title = 'Average Ratio of Claimed and Unclaimed Papers'
-        stats[ratio_claims_title] = get_average_ratio_of_claims(name)
+        stats[ratio_claims_title] = get_average_ratio_of_claims(self._name)
 
-        preserved_claims, total_claims = get_matched_claims(name)
+        preserved_claims, total_claims = get_matched_claims(self._name)
         stats['Number of Preserved Claims'] = preserved_claims
         stats['Number of Total Claims'] = total_claims
         percentage = preserved_claims / float(total_claims) * 100
         stats['Percentage of Preserved Claims'] = '%s %%' % percentage
 
         return stats
+
+    def _calculate_rankings(self):
+
+        rankings = dict()
+
+        most_mod_title = 'Most modified profiles'
+        rankings[most_mod_title] = get_most_modified_profs(self._name)
+
+        rankings['Unmodified Profiles'] = get_unmodified_profiles(self._name)
+
+        rankings['Abandoned Profiles'] = get_abandoned_profiles(self._name)
+
+        rankings['New clusters'] = get_new_clusters(self._name)
+
+        return rankings
 
 
 class DisambiguationTask(object):
@@ -291,7 +321,7 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         page_title = "Disambiguation Results for task %s" % task.task_id
         web_page = WebProfilePage('disambiguation', page_title)
 
-        content = {'stats': stats}
+        content = {'statistics': stats}
 
         return page(title=page_title,
                     metaheaderadd=web_page.get_head().encode('utf-8'),

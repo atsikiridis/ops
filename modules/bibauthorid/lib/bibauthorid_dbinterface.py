@@ -5035,9 +5035,9 @@ def get_papers_per_disambiguation_cluster(name):
     return no_of_papers / float(len(get_disambiguation_profiles(name)))
 
 
-def get_most_changed_clusters_of_disambiguation(name, ascending=False):  # remove ascending... add a seperate function
+def get_most_modified_disambiguated_profiles(name, ascending=False):  # remove ascending... add a seperate function
     """
-    TODO most changed, not biggest!
+    TODO most changed, not biggest!  ON AIDPESONIDPAPERS and MATCHED
     """
     main_query = """select distinct personid, count(bibrec) as total
                     from aidRESULTS where personid like %s group by personid"""
