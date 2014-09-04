@@ -2118,7 +2118,6 @@ $(document).ready(function() {
 
           _.map( randSample, function(item) {
             dispatch( item, loader );
-
           });
         }
       };

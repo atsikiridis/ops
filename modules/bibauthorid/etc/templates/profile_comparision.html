@@ -1,0 +1,175 @@
+{% extends "index.html" %}
+{% block content %}
+
+        <div data-box-pid="{{ person_id }}">
+            <!--Rows don't work for xs view, as the boxes' content won't fit.-->
+            <div class="row">
+                <div class="col-lg-5">
+                    <div class="well well-sm comparision-title">
+                        <strong><small>Before the latest disambiguation</small></strong>
+                    </div>
+                </div>
+                <div class="col-lg-2"></div>
+                <div class="col-lg-5">
+                    <div class="well well-sm comparision-title">
+                        <strong><small>The output of the latest algorithm</small></strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block personal_details %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block citations_summary %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block name_variants %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block affiliations %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block collaborations %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block publications %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block publications_graph %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block coauthors %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block papers %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block subject_categories %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12"><div class="row">
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% block frequent_keywords %}{% endblock %}
+                    </div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                    <div class="col-sm-5 col-md-5 col-lg-5">
+                        <div class="well well-sm inspire-well">
+                            i
+                        </div></div>
+                    <div class="col-sm-2 col-md-2 col-lg-2"></div>
+                </div></div>
+            </div>
+        </div>
+
+{% endblock %}

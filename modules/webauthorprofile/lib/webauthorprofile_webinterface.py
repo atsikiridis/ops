@@ -452,6 +452,7 @@ class WebAuthorPages(WebInterfaceDirectory):
 
         context["visible"] = AID_VISIBILITY
         context["element_width"] = self.render_width_dict
+        context["extended_template"] = 'profile_page_template.html'
 
         body = profile_page.get_wrapped_body("profile_page", context)
         return page(title=page_title,

@@ -760,6 +760,12 @@ ul.pub-tabs, .pub-tabs li {
   text-transform: uppercase;
 }
 
+.comparision-title {
+  color: #999999;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 .bsw .table>thead>tr>th.no-border,
 .bsw .table>tbody>tr>th.no-border,
 .bsw .table>tfoot>tr>th.no-border,

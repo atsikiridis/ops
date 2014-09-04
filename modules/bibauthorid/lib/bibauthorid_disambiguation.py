@@ -2,7 +2,8 @@
 
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
 
-from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, WEDGE_THRESHOLD
+from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, \
+    WEDGE_THRESHOLD, AID_VISIBILITY
 from invenio.bibauthorid_templates import initialize_jinja2_environment
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
 from invenio.bibauthorid_dbinterface import \
@@ -29,6 +30,8 @@ from invenio.bibauthorid_merge import get_abandoned_profiles
 from invenio.bibauthorid_merge import get_new_clusters
 
 from invenio.bibauthorid_templates import WebProfilePage
+
+from invenio.bibauthorid_webapi import get_person_redirect_link
 
 from invenio.webuser import page_not_authorized, get_session
 import invenio.bibauthorid_webapi as web_api
@@ -335,4 +338,54 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         Necessary for webstyle in order to be able to use
         /author/disambiguation/1 etc.
         """
-        return WebAuthorDisambiguationInfo(component), path
+        if len(path) == 0:
+            return WebAuthorDisambiguationInfo(component), path
+        elif len(path) == 1 and component == 'profile':
+            return WebAuthorProfileComparision(path[0]), []
+
+
+class WebAuthorProfileComparision(WebInterfaceDirectory):
+
+    """
+    Handles /author/disambiguation/profile/
+    Allows admin to check changes in profile after the algorithm was run.
+    """
+
+    def __init__(self, person):
+        if not CFG_BIBAUTHORID_ENABLED:
+            return
+        self.person = person
+
+    def __call__(self, req, form):
+        web_api.session_bareinit(req)
+        session = get_session(req)
+        if not session['personinfo']['ulevel'] == 'admin':
+            msg = "To access the disambiguation facility you should login."
+            return page_not_authorized(req, text=msg)
+
+        argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG)})
+
+        full_name = get_person_redirect_link(int(self.person))
+
+        page_title = "Disambiguation profile comparision for %s" % full_name
+        web_page = WebProfilePage('profile_page', page_title)
+
+        content = {
+            'extended_template' : 'profile_comparision.html',
+            'visible' : AID_VISIBILITY,
+            'person_id': self.person,
+            'element_width' : {
+                'publication_box' : '12',
+                'coauthors' : '12',
+                'papers' : '12',
+                'subject_categories' : '12',
+                'frequent_keywords' : '12'
+            }
+        }
+
+        return page(title=page_title,
+                    metaheaderadd=web_page.get_head().encode('utf-8'),
+                    body=web_page.get_wrapped_body('profile_page', content),
+                    req=req,
+                    language=argd['ln'],
+                    show_title_p=False)
