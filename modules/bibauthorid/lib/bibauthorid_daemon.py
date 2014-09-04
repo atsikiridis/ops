@@ -115,7 +115,7 @@ Examples:
                                        "last-names=",
                                        "st",
                                        "single-threaded",
-                                       "monitored"
+                                       "disambiguation-name="
                                        ]),
                       task_submit_elaborate_specific_parameter_fnc=_task_submit_elaborate_specific_parameter,
                       task_submit_check_options_fnc=_task_submit_check_options,
@@ -129,7 +129,6 @@ def _task_submit_elaborate_specific_parameter(key, value, opts, args):
     It must return True if it has elaborated the key, False, if it doesn't
     know that key.
     """
-
     if key in ("--update-personid",):
         bibtask.task_set_option("update_personid", True)
     elif key in ("--record-ids", '-i'):
@@ -154,8 +153,10 @@ def _task_submit_elaborate_specific_parameter(key, value, opts, args):
         bibtask.task_set_option("last-names", value)
     elif key in ("--single-threaded",):
         bibtask.task_set_option("single-threaded", True)
-    elif key in ("--monitored",):
-        bibtask.task_set_option("monitored", True)
+    elif key in ("--disambiguation-name",):
+        if value.count("="):
+            value = value[1:]
+        bibtask.task_set_option("disambiguation-name", value)
     else:
         return False
 
@@ -166,6 +167,7 @@ def _task_run_core():
     """
     Runs the requested task in the bibsched environment.
     """
+
     if bibtask.task_get_option('update_personid'):
         record_ids = bibtask.task_get_option('record_ids')
         if record_ids:
@@ -222,7 +224,7 @@ def _group_last_names(last_names_from_daemon):
             name = cl_args[0]
             threshold = float(cl_args[1])
             if threshold > 1 or threshold <= 0.0:
-                raise ValueError("Wrong values for threshold")
+                raise ValueError("Wrong value for threshold.")
 
             final_names[name] = threshold
         else:
@@ -364,7 +366,7 @@ def run_rabbit(paperslist, all_records=False):
             partial=True)
 
 
-@MonitoredDisambiguation(bool(bibtask.task_get_option("monitored")))
+@MonitoredDisambiguation(lambda: bibtask.task_get_option("disambiguation-name"))
 def run_tortoise(from_scratch, last_names_thresholds=None,
                  single_threaded=False):
 

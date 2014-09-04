@@ -54,6 +54,8 @@ from invenio.bibauthorid_general_utils import memoized
 from invenio.bibauthorid_general_utils import monitored
 from invenio.bibauthorid_logutils import Logger
 
+import cPickle
+
 import time
 
 
@@ -4949,12 +4951,12 @@ def get_disambiguation_task_data(status=None):
 def get_disambiguation_task_stats(task_id):
     query = "select stats from aidDISAMBIGUATIONSTATS where taskid=%s"
     stats = run_sql(query, (task_id,))[0][0]
-    return deserialize(stats)
+    return cPickle.loads(stats)
 
 
 def get_status_of_task_by_task_id(task_id):
+    query = "select status from aidDISAMBIGUATIONLOG where taskid=%s"
     try:
-        query = "select status from aidDISAMBIGUATIONLOG where taskid=%s"
         return run_sql(query, (task_id,))[0][0]
     except IndexError:
         raise TaskNotRegisteredError
@@ -4973,6 +4975,22 @@ def get_task_id_by_cluster_name(cluster, status=None):
             msg = ' '.join([msg, 'and status = %s' % status])
         raise TaskNotRegisteredError(msg)
 
+
+def get_cluster_info_by_task_id(task_id):
+    query = "select surname, args from aidDISAMBIGUATIONLOG where taskid=%s"
+    try:
+        results = run_sql(query, (task_id,))[0]
+    except IndexError:
+        raise TaskNotRegisteredError()
+    return results[0], deserialize(results[1])['threshold']
+
+
+def get_bibsched_task_id_by_task_name(task_name):  # For some reason get_task_ids_by_descending_date does not work TODO
+    try:
+        return run_sql("select id from schTASK where proc=%s",
+                       (task_name,))[0][0]
+    except IndexError:
+        raise TaskNotRegisteredError()
 
 class TaskNotRegisteredError(Exception):
     """
@@ -5005,7 +5023,7 @@ class TaskNotSuccessfulError(Exception):
 
 # Disambiguation statistics
 def register_disambiguation_statistics(task_id, stats):
-    stats_blob = serialize(stats)
+    stats_blob = cPickle.dumps(stats)
     q = "insert into aidDISAMBIGUATIONSTATS (taskid, stats) VALUES (%s, %s)"
     run_sql(q, (task_id, stats_blob))
 

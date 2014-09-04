@@ -24,11 +24,13 @@ from invenio.bibauthorid_dbinterface import get_disambiguation_task_stats
 from invenio.bibauthorid_dbinterface import get_average_ratio_of_claims
 from invenio.bibauthorid_dbinterface import \
     get_most_modified_disambiguated_profiles as get_most_modified_profs
+from invenio.bibauthorid_dbinterface import get_bibsched_task_id_by_task_name
+from invenio.bibauthorid_dbinterface import get_cluster_info_by_task_id
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
 from invenio.bibauthorid_merge import get_new_clusters
-
+import traceback
 from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.bibauthorid_webapi import get_person_redirect_link
@@ -53,57 +55,54 @@ def _schedule_disambiguation(cluster, name_of_user, threshold):
     threshold as a parameter.
     """
     last_names = '--last-names=%s:%s' % (cluster, threshold)
-    current_time = datetime.now().strftime('%Y_%B_%d_%I_%M')
+    current_time = datetime.now().strftime('%Y_%m_%d_%I_%M')
     task_name = '_'.join(['disambiguate_author', cluster, current_time])
     params = ('bibauthorid', name_of_user, '--disambiguate',
-              '--single-threaded', '--monitored', last_names, '--name',
-              task_name)
+              '--single-threaded', last_names,
+              '--disambiguation-name=%s:%s' % ('bibauthorid', task_name),
+              '--name', task_name)
+
     return task_low_level_submission(*params)
 
 
 class MonitoredDisambiguation(object):
 
-    def __init__(self, func, monitored):  # TODO Document last_names_thresholds
-        self._func = func
-        self._monitored = monitored
+    def __init__(self, get_task_name):
+        self._get_task_name = get_task_name
 
-    def __call__(self, *args, **kwargs):
-        if not self._monitored:
-            return self._func(*args, **kwargs)
+    def __call__(self, tortoise_func):
 
-        try:
-            name_threshold = kwargs['last_names_thresholds']
-            self._name, self._threshold = name_threshold.keys()
-        except AttributeError, e:
-            for index, arg_name in enumerate(self._func.func_code.co_varnames):
-                if arg_name == 'last_names_thresholds':
-                    self._name, self._threshold = args[index].keys()
+        def monitored_tortoise(*args, **kwargs):
+            task_name = self._get_task_name()
             try:
-                assert self._name and self._threshold
-            except AssertionError:
+                self._task_id = get_bibsched_task_id_by_task_name(task_name)
+            except TaskNotRegisteredError:
+                return tortoise_func(*args, **kwargs)
+
+            cluster_info = get_cluster_info_by_task_id(self._task_id)
+            self._name, self._threshold = cluster_info
+            set_task_start_time(self._task_id, datetime.now())
+
+            update_disambiguation_task_status(self._task_id, 'RUNNING')
+            try:
+                value = tortoise_func(*args, **kwargs)
+            except Exception, e:
+                set_task_end_time(self._task_id, datetime.now())
+                update_disambiguation_task_status(self._task_id, 'FAILED')
                 raise e
-
-        self._task_id = get_task_id_by_cluster_name(self._name, "SCHEDULED")
-
-        set_task_start_time(self._task_id, datetime.now())
-        update_disambiguation_task_status(self._task_id, 'RUNNING')
-        try:
-            value = self._func(*args, **kwargs)
-        except Exception, e:
+                # TODO get failure info.
             set_task_end_time(self._task_id, datetime.now())
-            update_disambiguation_task_status(self._task_id, 'FAILED')
-            raise e
-            # TODO get failure info.
-        set_task_end_time(self._task_id, datetime.now())
 
-        statistics = dict()
-        statistics['stats'] = self._calculate_stats()
-        statistics['rankings'] = self._calculate_rankings()
+            statistics = dict()
+            statistics['stats'] = self._calculate_stats()
+            statistics['rankings'] = self._calculate_rankings()
 
-        register_disambiguation_statistics(self._task_id, statistics)
+            register_disambiguation_statistics(self._task_id, statistics)
 
-        update_disambiguation_task_status(self._task_id, 'SUCCEEDED')
-        return value
+            update_disambiguation_task_status(self._task_id, 'SUCCEEDED')
+            return value
+
+        return monitored_tortoise
 
     def _calculate_stats(self):
         """
@@ -143,7 +142,7 @@ class MonitoredDisambiguation(object):
 
         rankings['Abandoned Profiles'] = get_abandoned_profiles(self._name)
 
-        rankings['New clusters'] = get_new_clusters(self._name)
+        rankings['New clusters'] = get_new_clusters(self._name)  # Work
 
         return rankings
 
