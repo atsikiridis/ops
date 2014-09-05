@@ -26,12 +26,15 @@ from invenio.bibauthorid_dbinterface import \
     get_most_modified_disambiguated_profiles as get_most_modified_profs
 from invenio.bibauthorid_dbinterface import get_bibsched_task_id_by_task_name
 from invenio.bibauthorid_dbinterface import get_cluster_info_by_task_id
+from invenio.bibauthorid_dbinterface import get_clusters
+from invenio.bibauthorid_dbinterface import get_matchable_name_by_pid
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
 from invenio.bibauthorid_merge import get_new_clusters
 from invenio.bibauthorid_merge import \
     merge_dynamic as merge_disambiguation_results
+from invenio.bibauthorid_merge import get_matched_clusters
 
 from invenio.bibauthorid_templates import WebProfilePage
 
@@ -401,3 +404,23 @@ class WebAuthorProfileComparision(WebInterfaceDirectory):
                     req=req,
                     language=argd['ln'],
                     show_title_p=False)
+
+    def _get_disambiguation_matching(self):
+        """
+        Method returning the signatures matched with this personid. Accepts
+        both 'real' pids ( from aidPERSONIDPAPERS ) and 'fake' pids
+        (from aidRESULTS).
+        :param personid: int if 'real' pid, str if 'fake' pid (e.g. ellis.0)
+        :return: a list of signatures that are being matched
+        """
+
+        try:
+            name = get_matchable_name_by_pid(int(self.person)).split(',', 1)[0]
+        except AttributeError:
+            raise StandardError("There is no matchable name for pid=%s"
+                                % self.person)
+        except ValueError:
+            return get_clusters(personid=False, cluster=self.person)
+
+        clusters = get_matched_clusters(name)
+        return [sigs for sigs, pid in clusters if pid == self.person]

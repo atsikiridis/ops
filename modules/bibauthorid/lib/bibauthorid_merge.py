@@ -333,9 +333,9 @@ def merge_dynamic(lname=None):
         
         best_match, old_pids = get_merge_matching_matrix_and_pids(results)
         
-        matched_clusters = get_matched_clusters(best_match, results, old_pids)
+        matched_clusters = _get_matched_clusters(best_match, results, old_pids)
         
-        not_matched_clusters = get_unmatched_clusters(best_match, results)
+        not_matched_clusters = _get_unmatched_clusters(best_match, results)
 
         not_matched_clusters = izip((results[i][1] for i in not_matched_clusters), free_pids)
         
@@ -408,7 +408,23 @@ def get_merge_matching_matrix_and_pids(results):
     return best_match, old_pids
 
 
-def get_matched_clusters(best_match_matrix, results, pids, pids_only=False):
+def get_matched_clusters(name):
+    results = get_signatures_for_merge_cluster_by_surname(name)
+
+    best_match, old_pids = get_merge_matching_matrix_and_pids(results)
+
+    return _get_matched_clusters(best_match, results, old_pids)
+
+
+def get_unmatched_clusters(name):
+    results = get_signatures_for_merge_cluster_by_surname(name)
+
+    best_match, _ = get_merge_matching_matrix_and_pids(results)
+
+    return _get_unmatched_clusters(best_match, results)
+
+
+def _get_matched_clusters(best_match_matrix, results, pids, pids_only=False):
     '''
         Returns clusters from aidRESULTS that have matching with others in
         aidPERSONNIDPAPERS.
@@ -420,7 +436,7 @@ def get_matched_clusters(best_match_matrix, results, pids, pids_only=False):
             for new_idx, old_idx, score in best_match_matrix if score > 0]
     
     
-def get_unmatched_clusters(best_match_matrix, results):
+def _get_unmatched_clusters(best_match_matrix, results):
     '''
         Returns clusters from aidRESULTS that have no matchings with others in
         aidPERSONNIDPAPERS.
@@ -448,7 +464,7 @@ def get_abandoned_profiles(name):
 
     results = get_signatures_for_merge_cluster_by_surname(name)
     best_match, old_pids = get_merge_matching_matrix_and_pids(results)
-    pids_in_aidresults = get_matched_clusters(best_match, results, old_pids,
+    pids_in_aidresults = _get_matched_clusters(best_match, results, old_pids,
                                               pids_only=True)
 
     return pids_in_aidpersonidpapers - set(pids_in_aidresults)
@@ -457,7 +473,7 @@ def get_abandoned_profiles(name):
 def get_unmodified_profiles(name):
     results = get_signatures_for_merge_cluster_by_surname(name)
     best_match, old_pids = get_merge_matching_matrix_and_pids(results)
-    matched = get_matched_clusters(best_match, results, old_pids)
+    matched = _get_matched_clusters(best_match, results, old_pids)
 
     matched_per_pid = dict()
     for sigs_per_pid in matched:

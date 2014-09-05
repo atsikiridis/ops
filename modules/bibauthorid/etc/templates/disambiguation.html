@@ -41,7 +41,7 @@
 
         <form class="merge-form" method="post" action="">
             <input type="hidden" name="should-merge" value="true"/>
-            <button class="btn btn-default" type="button" onclick="document.getElementsByClassName('merge-form')[0].submit();">
+            <button class="btn btn-default {{ disabled if merged else '' }}" type="button" onclick="document.getElementsByClassName('merge-form')[0].submit();">
                 <span class="glyphicon glyphicon-refresh"></span>Apply Disambiguation!
             </button>
         </form>

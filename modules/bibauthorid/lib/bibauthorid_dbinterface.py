@@ -4852,15 +4852,23 @@ def remove_clusters_except(excl_surnames):  # remove_results_outside
                (surname + '.%%',))
 
 
-def get_clusters():  # get_full_results
+def get_clusters(personid=True, cluster=None):  # get_full_results
     '''
     Gets all disambiguation algorithm result records.
 
     @return: disambiguation algorithm result records ((name, bibref_table, bibref_value, bibrec),)
     @rtype: tuple ((str, str, int, int),)
     '''
-    return run_sql("""select personid, bibref_table, bibref_value, bibrec
-                      from aidRESULTS""")
+    if personid:
+        select_query = "select personid, bibref_table, bibref_value, bibrec"
+    else:
+        select_query = "select bibref_table, bibref_value, bibrec"
+    if cluster:
+        where_query = "where personid = %s"
+    else:
+        where_query = ''
+    return run_sql(' '.join([select_query, 'from aidRESULTS', where_query]),
+                   (cluster,))
 
 
 def get_existing_papers_and_refs(table, recs, refs):  # get_bibrefrec_subset
@@ -4912,6 +4920,14 @@ def author_exists(personid):
 
 
 # Disambiguation web interface
+
+def get_matchable_name_by_pid(pid):
+    query = "select distinct m_name from aidPERSONIDPAPERS where personid= %s"
+    try:
+        return run_sql(query, (pid,))[0][0]
+    except IndexError:
+        return None
+
 def add_new_disambiguation_task(task_id, cluster, name_of_user, threshold):
     args = serialize({'threshold': threshold, 'user': name_of_user})
     query = """insert into aidDISAMBIGUATIONLOG (taskid, surname, args)
