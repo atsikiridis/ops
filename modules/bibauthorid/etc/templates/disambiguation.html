@@ -19,4 +19,30 @@
              </table>
         </div>
 
+
+        <div class="col-md-offset-1 col-md-10">
+             <table class="table condensed well inspire-well" width="100%" cellpadding="0" cellspacing="10" border="1">
+                  <tr>
+                      <td valign="top">Statistics</td>
+                  </tr>
+                  {% for stat_name, value in statistics['rankings'].iteritems() %}
+                  <tr>
+                      <td valign="top">
+                           {{ stat_name }}<br>
+                      </td>
+
+                      <td valign="top">
+                           {{ value }}
+                      </td>
+                  </tr>
+                  {% endfor %}
+             </table>
+        </div>
+
+        <form class="merge-form" method="post" action="">
+            <input type="hidden" name="should-merge" value="true"/>
+            <button class="btn btn-default" type="button" onclick="document.getElementsByClassName('merge-form')[0].submit();">
+                <span class="glyphicon glyphicon-refresh"></span>Apply Disambiguation!
+            </button>
+        </form>
 {% endblock %}

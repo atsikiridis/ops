@@ -17,7 +17,7 @@ def do_upgrade():
                 `start_time` datetime,
                 `end_time` datetime,
                 `status` enum('SCHEDULED', 'RUNNING', 'SUCCEEDED', 'FAILED',
-                'KILLED') NOT NULL
+                'KILLED', 'MERGED') NOT NULL
                 ) ENGINE=MyISAM""")
 
     run_sql("""CREATE TABLE IF NOT EXISTS `aidDISAMBIGUATIONSTATS` (

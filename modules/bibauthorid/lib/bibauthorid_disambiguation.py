@@ -30,7 +30,9 @@ from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
 from invenio.bibauthorid_merge import get_new_clusters
-import traceback
+from invenio.bibauthorid_merge import \
+    merge_dynamic as merge_disambiguation_results
+
 from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.bibauthorid_webapi import get_person_redirect_link
@@ -45,6 +47,7 @@ from invenio.webpage import page
 from invenio.urlutils import redirect_to_url
 
 from datetime import datetime
+from collections import OrderedDict
 
 from signal import SIGTERM
 
@@ -108,7 +111,7 @@ class MonitoredDisambiguation(object):
         """
         Gets data for current data in aidRESULTS.
         """
-        stats = dict()
+        stats = OrderedDict()
         stats['Task ID'] = self._task_id
         stats['Name'] = self._name
         stats['Wedge Threshold'] = self._threshold
@@ -118,10 +121,12 @@ class MonitoredDisambiguation(object):
         stats['Number of Profiles After'] = profiles_after
 
         avg_p_title = 'Number of Papers per Disambiguation Cluster'
-        stats[avg_p_title] = get_papers_per_disambiguation_cluster(self._name)
+        papers_per_cluster = get_papers_per_disambiguation_cluster(self._name)
+        stats[avg_p_title] = papers_per_cluster
 
         ratio_claims_title = 'Average Ratio of Claimed and Unclaimed Papers'
-        stats[ratio_claims_title] = get_average_ratio_of_claims(self._name)
+        ratio_claims = get_average_ratio_of_claims(self._name)
+        stats[ratio_claims_title] = ratio_claims
 
         preserved_claims, total_claims = get_matched_claims(self._name)
         stats['Number of Preserved Claims'] = preserved_claims
@@ -142,7 +147,7 @@ class MonitoredDisambiguation(object):
 
         rankings['Abandoned Profiles'] = get_abandoned_profiles(self._name)
 
-        rankings['New clusters'] = get_new_clusters(self._name)  # Work
+        rankings['New clusters'] = get_new_clusters(self._name)  # Work, None for now
 
         return rankings
 
@@ -308,7 +313,8 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         if not session['personinfo']['ulevel'] == 'admin':
             msg = "To access the disambiguation facility you should login."
             return page_not_authorized(req, text=msg)
-        argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG)})
+        argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG),
+                                   'should-merge': (str, None)})
 
         if self._task_id < 1:
             redirect_to_url(req, CFG_BASE_URL + '/author/dashboard')
@@ -323,7 +329,14 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         page_title = "Disambiguation Results for task %s" % task.task_id
         web_page = WebProfilePage('disambiguation', page_title)
 
-        content = {'statistics': stats}
+        if argd['should-merge']:
+            surname = get_cluster_info_by_task_id(self._task_id)[0]
+            merge_disambiguation_results(surname)
+            update_disambiguation_task_status(self._task_id, 'MERGED')
+
+        merged = get_status_of_task_by_task_id(self._task_id) == 'MERGED'
+        content = {'statistics': stats,
+                   'merged': merged}
 
         return page(title=page_title,
                     metaheaderadd=web_page.get_head().encode('utf-8'),
