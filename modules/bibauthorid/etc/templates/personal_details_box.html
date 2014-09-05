@@ -80,10 +80,12 @@
 			</div>
 		</a>
 		{% endfor %}
+        {% if not fake %}
 		<a href="{{ new_record_link }}" class="list-group-item">
 			<h4 class="list-group-item-heading">Create One</h4>
 			<p class="list-group-item-text">I am able to provide INSPIRE with some details.</p>
 		</a>
+        {% endif %}
 	</div>
 </div>
 {% else %}

@@ -55,6 +55,7 @@ from invenio.bibauthorid_webinterface import WebInterfaceAuthorTicketHandling
 import invenio.bibauthorid_webapi as webapi
 from invenio.bibauthorid_dbinterface import get_canonical_name_of_author
 from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, AID_VISIBILITY
+from invenio.bibauthorid_disambiguation import FakeProfile
 import invenio.template
 import cProfile, pstats, cStringIO
 
@@ -126,7 +127,8 @@ class WebAuthorPages(WebInterfaceDirectory):
                 'create_authorpage_pubs',
                 ('publications-graph', 'create_authorpage_pubs_graph'),
                 ('publications-list', 'create_authorpage_pubs_list'),
-                ('announcements', 'create_announcements_box')]
+                ('announcements', 'create_announcements_box'),
+                ('fake-publications-list', 'create_authorpage_pubs_list')]
 
 
     def __init__(self, identifier=None):
@@ -470,7 +472,10 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                namesdict, namesdictStatus = get_person_names_dicts(person_id)
+                if json_data.has_key('fake'):
+                    namesdict, namesdictStatus = FakeProfile.get_person_names_dicts(person_id)
+                else:
+                    namesdict, namesdictStatus = get_person_names_dicts(person_id)
                 if not namesdict:
                     namesdict = dict()
                 try:
@@ -479,6 +484,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                     db_names_dict = dict()
 
                 person_link, person_linkStatus = get_veryfy_my_pubs_list_link(person_id)
+
                 bibauthorid_data = {'is_baid': True, 'pid': person_id, 'cid': None}
                 if person_link and person_linkStatus:
                     bibauthorid_data = {'is_baid': True, 'pid': person_id, 'cid': person_link}
@@ -495,11 +501,16 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                pubs, pubsStatus = get_pubs(person_id)
+                if json_data.has_key('fake'):
+                    pubs, pubsStatus = FakeProfile.get_pubs(person_id)
+                    selfpubs, selfpubsStatus = FakeProfile.get_selfpubs(person_id)
+                else:
+                    pubs, pubsStatus = get_pubs(person_id)
+                    selfpubs, selfpubsStatus = get_self_pubs(person_id)
+
                 if not pubs:
                     pubs = list()
 
-                selfpubs, selfpubsStatus = get_self_pubs(person_id)
                 if not selfpubs:
                     selfpubs = list()
 
@@ -524,12 +535,16 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                kwtuples, kwtuplesStatus = get_kwtuples(person_id)
+                if json_data.has_key('fake'):
+                    kwtuples, kwtuplesStatus = FakeProfile.get_kwtuples(person_id)
+                else:
+                    kwtuples, kwtuplesStatus = get_kwtuples(person_id)
                 if kwtuples:
                     pass
                     # kwtuples = kwtuples[0:MAX_KEYWORD_LIST]
                 else:
                     kwtuples = list()
+
 
                 person_link, person_linkStatus = get_veryfy_my_pubs_list_link(person_id)
                 bibauthorid_data = {'is_baid': True, 'pid': person_id, 'cid': None}
@@ -548,7 +563,10 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                fieldtuples, fieldtuplesStatus = get_fieldtuples(person_id)
+                if json_data.has_key('fake'):
+                    fieldtuples, fieldtuplesStatus = FakeProfile.get_fieldtuples(person_id)
+                else:
+                    fieldtuples, fieldtuplesStatus = get_fieldtuples(person_id)
                 if fieldtuples:
                     pass
                     # fieldtuples = fieldtuples[0:MAX_FIELDCODE_LIST]
@@ -572,7 +590,11 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                author_aff_pubs, author_aff_pubsStatus = get_institute_pubs(person_id)
+                if json_data.has_key('fake'):
+                    author_aff_pubs, author_aff_pubsStatus = FakeProfile.get_institute_pubs(person_id)
+                else:
+                    author_aff_pubs, author_aff_pubsStatus = get_institute_pubs(person_id)
+
                 if not author_aff_pubs:
                     author_aff_pubs = dict()
 
@@ -593,7 +615,10 @@ class WebAuthorPages(WebInterfaceDirectory):
                 if person_link and person_linkStatus:
                     bibauthorid_data = {'is_baid': True, 'pid': person_id, 'cid': person_link}
 
-                coauthors, coauthorsStatus = get_coauthors(person_id)
+                if json_data.has_key('fake'):
+                    coauthors, coauthorsStatus = FakeProfile.get_coauthors(person_id)
+                else:
+                    coauthors, coauthorsStatus = get_coauthors(person_id)
                 if not coauthors:
                     coauthors = dict()
 
@@ -610,8 +635,12 @@ class WebAuthorPages(WebInterfaceDirectory):
             if 'personId' in json_data:
                 person_id = json_data['personId']
 
-                citation_data, cache_status = get_summarize_records(person_id)
-                records, records_cache_status = get_pubs(person_id)
+                if 'fake' in json_data:
+                    citation_data, cache_status = FakeProfile.get_summarize_records(person_id)
+                    records, records_cache_status = FakeProfile.get_pubs(person_id)
+                else:
+                    citation_data, cache_status = get_summarize_records(person_id)
+                    records, records_cache_status = get_pubs(person_id)
 
                 citations = {'breakdown_categories': ['Renowned papers (500+)', 'Famous papers (250-499)',
                                                       'Very well-known papers (100-249)',
@@ -649,7 +678,10 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                pubs_per_year, pubs_per_yearStatus = get_pubs_per_year(person_id)
+                if json_data.has_key('fake'):
+                    pubs_per_year, pubs_per_yearStatus = FakeProfile.get_pubs_per_year(person_id)
+                else:
+                    pubs_per_year, pubs_per_yearStatus = get_pubs_per_year(person_id)
                 if not pubs_per_year:
                     pubs_per_year = dict()
 
@@ -674,6 +706,11 @@ class WebAuthorPages(WebInterfaceDirectory):
                 if not hepdictStatus:
                     return json.dumps({'status': False, 'html': ''})
 
+                if json_data.has_key('fake'):
+                    if 'choice_list' in context:
+                        context.pop('choice_list')
+                    context['fake'] = True
+
                 context.update({
                     'cname': webapi.get_canonical_id_from_person_id(person_id),
                     'link_to_record': ulevel == "admin",
@@ -697,7 +734,11 @@ class WebAuthorPages(WebInterfaceDirectory):
             if json_data.has_key('personId'):
                 person_id = json_data['personId']
 
-                collab, collabStatus = get_collabtuples(person_id)
+                if json_data.has_key('fake'):
+                    collab, collabStatus = FakeProfile.get_collabtuples(person_id)
+                else:
+                    collab, collabStatus = get_collabtuples(person_id)
+
 
                 person_link, person_linkStatus = get_veryfy_my_pubs_list_link(person_id)
                 bibauthorid_data = {'is_baid': True, 'pid': person_id, 'cid': None}

@@ -32,7 +32,8 @@ etc_DATA    = head.html \
             help.html \
             dashboard.html \
             disambiguation.html \
-            profile_comparision.html
+            profile_comparison.html \
+            fake_profile.html
 
 EXTRA_DIST = $(etc_DATA)
 

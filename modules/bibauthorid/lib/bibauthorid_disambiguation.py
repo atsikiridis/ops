@@ -40,6 +40,7 @@ from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.bibauthorid_webapi import get_person_redirect_link
 
+#from invenio.webauthorprofile_webinterface import wrap_json_req_profiler
 from invenio.webuser import page_not_authorized, get_session
 import invenio.bibauthorid_webapi as web_api
 
@@ -356,10 +357,10 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         if len(path) == 0:
             return WebAuthorDisambiguationInfo(component), path
         elif len(path) == 1 and component == 'profile':
-            return WebAuthorProfileComparision(path[0]), []
+            return WebAuthorProfileComparison(path[0]), []
 
 
-class WebAuthorProfileComparision(WebInterfaceDirectory):
+class WebAuthorProfileComparison(WebInterfaceDirectory):
 
     """
     Handles /author/disambiguation/profile/
@@ -382,11 +383,11 @@ class WebAuthorProfileComparision(WebInterfaceDirectory):
 
         full_name = get_person_redirect_link(int(self.person))
 
-        page_title = "Disambiguation profile comparision for %s" % full_name
-        web_page = WebProfilePage('profile_page', page_title)
+        page_title = "Disambiguation profile comparison for %s" % full_name
+        web_page = WebProfilePage('fake_profile', page_title)
 
         content = {
-            'extended_template' : 'profile_comparision.html',
+            'extended_template' : 'profile_comparison.html',
             'visible' : AID_VISIBILITY,
             'person_id': self.person,
             'element_width' : {
@@ -400,7 +401,7 @@ class WebAuthorProfileComparision(WebInterfaceDirectory):
 
         return page(title=page_title,
                     metaheaderadd=web_page.get_head().encode('utf-8'),
-                    body=web_page.get_wrapped_body('profile_page', content),
+                    body=web_page.get_wrapped_body('fake_profile', content),
                     req=req,
                     language=argd['ln'],
                     show_title_p=False)
@@ -424,3 +425,67 @@ class WebAuthorProfileComparision(WebInterfaceDirectory):
 
         clusters = get_matched_clusters(name)
         return [sigs for sigs, pid in clusters if pid == self.person]
+
+class FakeProfile(WebInterfaceDirectory):
+
+    """
+    Holder for functions which provide generating of fake profile's boxes.
+    """
+
+    @classmethod
+    def get_coauthors(cls, person_id):
+        return [], True
+
+    @classmethod
+    def get_collabtuples(cls, person_id):
+        return [], True
+
+    @classmethod
+    def get_fieldtuples(cls, person_id):
+        return [], True
+
+    @classmethod
+    def get_summarize_records(cls, person_id):
+        return [[{'Citeable papers': [], 'Published only': []},
+                 {'Citeable papers': {'h-index': 0, 'total_cites': 0, 'avg_cites': 0,
+                                      'breakdown': {'Known papers (10-49)': 0,
+                                                    'Unknown papers (0)': 0,
+                                                    'Less known papers (1-9)': 0,
+                                                    'Famous papers (250-499)': 0,
+                                                    'Well-known papers (50-99)': 0,
+                                                    'Very well-known papers (100-249)': 0,
+                                                    'Renowned papers (500+)': 0}},
+                  'Published only': {'h-index': 0, 'total_cites': 0,
+                                     'avg_cites': 0,
+                                     'breakdown': {'Known papers (10-49)': 0,
+                                                   'Unknown papers (0)': 0,
+                                                   'Less known papers (1-9)': 0,
+                                                   'Famous papers (250-499)': 0,
+                                                   'Well-known papers (50-99)': 0,
+                                                   'Very well-known papers (100-249)': 0,
+                                                   'Renowned papers (500+)': 0}}}],
+                'author:"H.C.Cheng..1"'], True
+
+    @classmethod
+    def get_institute_pubs(cls, person_id):
+        return {}, True
+
+    @classmethod
+    def get_kwtuples(cls, person_id):
+        return [], True
+
+    @classmethod
+    def get_pubs(cls, person_id):
+        return [], True
+
+    @classmethod
+    def get_pubs_per_year(cls, person_id):
+        return {}, True
+
+    @classmethod
+    def get_person_names_dicts(cls, person_id):
+        return {'db_names_dict' : { 'PPPP' : 1 } }, True
+
+    @classmethod
+    def get_selfpubs(cls, person_id):
+        return  [], True

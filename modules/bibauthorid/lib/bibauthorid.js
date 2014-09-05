@@ -2080,11 +2080,18 @@ $(document).ready(function() {
 
         var $box = $( box ),
             source = $box.data( "boxSource" ),
-            requestConfig = callbacks( $box, obj );
+            requestConfig = callbacks( $box, obj ),
+            fake = $box.data( "fake" );
+
+        var jsonDict = { personId: obj.pid };
+
+        if (undefined != fake) {
+            jsonDict.fake = fake;
+        }
 
         requestConfig.url = obj.baseUrl + source;
         requestConfig.type = "POST";
-        requestConfig.data = { jsondata: JSON.stringify( { personId: obj.pid } ) };
+        requestConfig.data = { jsondata: JSON.stringify( jsonDict ) };
 
         $box.data( {
 
