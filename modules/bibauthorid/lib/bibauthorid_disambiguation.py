@@ -28,6 +28,7 @@ from invenio.bibauthorid_dbinterface import get_bibsched_task_id_by_task_name
 from invenio.bibauthorid_dbinterface import get_cluster_info_by_task_id
 from invenio.bibauthorid_dbinterface import get_clusters
 from invenio.bibauthorid_dbinterface import get_matchable_name_by_pid
+from invenio.bibauthorid_dbinterface import get_name_from_bibref
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
@@ -40,7 +41,9 @@ from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.bibauthorid_webapi import get_person_redirect_link
 
-#from invenio.webauthorprofile_webinterface import wrap_json_req_profiler
+from invenio.webauthorprofile_corefunctions import _get_institute_pubs_dict
+from invenio.webauthorprofile_corefunctions import _get_collabtuples_bai
+
 from invenio.webuser import page_not_authorized, get_session
 import invenio.bibauthorid_webapi as web_api
 
@@ -406,25 +409,27 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
                     language=argd['ln'],
                     show_title_p=False)
 
-    def _get_disambiguation_matching(self):
-        """
-        Method returning the signatures matched with this personid. Accepts
-        both 'real' pids ( from aidPERSONIDPAPERS ) and 'fake' pids
-        (from aidRESULTS).
-        :param personid: int if 'real' pid, str if 'fake' pid (e.g. ellis.0)
-        :return: a list of signatures that are being matched
-        """
+def _get_disambiguation_matching(person):
+    """
+    Method returning the signatures matched with this personid. Accepts
+    both 'real' pids ( from aidPERSONIDPAPERS ) and 'fake' pids
+    (from aidRESULTS).
+    :param personid: int if 'real' pid, str if 'fake' pid (e.g. ellis.0)
+    :return: a list of signatures that are being matched
+    """
 
-        try:
-            name = get_matchable_name_by_pid(int(self.person)).split(',', 1)[0]
-        except AttributeError:
-            raise StandardError("There is no matchable name for pid=%s"
-                                % self.person)
-        except ValueError:
-            return get_clusters(personid=False, cluster=self.person)
+    try:
+        name = get_matchable_name_by_pid(int(person)).split(',', 1)[0]
+        #To do: remove after fix
+        name = 'cheng'
+    except AttributeError:
+        raise StandardError("There is no matchable name for pid=%s"
+                            % person)
+    except ValueError:
+        return get_clusters(personid=False, cluster=person)
 
-        clusters = get_matched_clusters(name)
-        return [sigs for sigs, pid in clusters if pid == self.person]
+    clusters = get_matched_clusters(name)
+    return [sigs for sigs, pid in clusters if pid == person]
 
 class FakeProfile(WebInterfaceDirectory):
 
@@ -433,12 +438,27 @@ class FakeProfile(WebInterfaceDirectory):
     """
 
     @classmethod
+    def _get_pubs_from_matching(cls, person_id):
+
+        matching = _get_disambiguation_matching(person_id)[0]
+
+        recids = [x for _, _, x in matching]
+
+        return recids
+
+
+    @classmethod
     def get_coauthors(cls, person_id):
         return [], True
 
     @classmethod
     def get_collabtuples(cls, person_id):
-        return [], True
+
+        recids = cls._get_pubs_from_matching(person_id)
+
+        tup = _get_collabtuples_bai(recids, person_id)
+
+        return tup, True
 
     @classmethod
     def get_fieldtuples(cls, person_id):
@@ -468,7 +488,15 @@ class FakeProfile(WebInterfaceDirectory):
 
     @classmethod
     def get_institute_pubs(cls, person_id):
-        return {}, True
+        namesdict, status = cls.get_person_names_dicts(person_id)
+        if not status:
+            return None, False
+
+        recids = cls._get_pubs_from_matching(person_id)
+
+        result = _get_institute_pubs_dict(recids, namesdict)
+
+        return result, True
 
     @classmethod
     def get_kwtuples(cls, person_id):
@@ -484,7 +512,38 @@ class FakeProfile(WebInterfaceDirectory):
 
     @classmethod
     def get_person_names_dicts(cls, person_id):
-        return {'db_names_dict' : { 'PPPP' : 1 } }, True
+        matching = _get_disambiguation_matching(person_id)
+
+        result = { 'db_names_dict': {}, 'names_dict': {},
+                   'names_to_records': {}
+                 }
+        helper_dict = {}
+
+        for tab in matching:
+            for (bibref_table, bibref_value, bibrec) in tab:
+                if (bibref_table, bibref_value) in helper_dict:
+                    helper_dict[(bibref_table, bibref_value)][1].append(bibrec)
+                else:
+                    bibref = (int(bibref_table), bibref_value, )
+                    name = get_name_from_bibref(bibref)
+                    helper_dict[(bibref_table, bibref_value)] = \
+                            [name,[bibrec]]
+
+        longest_name = ''
+        for key, value in helper_dict.iteritems():
+            if len(value[0]) > len(longest_name):
+                longest_name = value[0]
+            if value[0] in result['db_names_dict']:
+                result['db_names_dict'][value[0]] += len(value[1])
+                result['names_dict'][value[0]] += len(value[1])
+                result['names_to_records'][value[0]] + value[1]
+            else:
+                result['db_names_dict'][value[0]] = len(value[1])
+                result['names_dict'][value[0]] = len(value[1])
+                result['names_to_records'][value[0]] = value[1]
+
+        result['longest_name'] = longest_name
+        return result, True
 
     @classmethod
     def get_selfpubs(cls, person_id):

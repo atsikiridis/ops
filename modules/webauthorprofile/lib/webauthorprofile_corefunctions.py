@@ -116,11 +116,11 @@ def retrieve_update_cache(name, key, target, *args):
     '''
     #print '--Getting ', name, ' ', key
     cached = get_cached_element(name, str(key))
-    if cached['present']:
-        if cached['upToDate'] and not FORCE_CACHE_IS_EXPIRED:
-            delay = datetime.now() - cached['last_updated']
-            if delay < CACHE_IS_OUTDATED_DELAY:
-                return [deserialize(cached['value']), True]
+    #if cached['present']:
+    #    if cached['upToDate'] and not FORCE_CACHE_IS_EXPIRED:
+    #        delay = datetime.now() - cached['last_updated']
+    #       if delay < CACHE_IS_OUTDATED_DELAY:
+    #            return [deserialize(cached['value']), True]
     val = update_cache(cached, name, str(key), target, *args)
     if val[0]:
         return [val[1], True]
@@ -690,6 +690,7 @@ def _get_collabtuples_bai(pubs, person_id):
     Returns the list keyword tuples for given personid.
     @param person_id: int person id
     '''
+
     tup = get_most_popular_field_values(pubs,
                             CFG_WEBAUTHORPROFILE_COLLABORATION_TAG, count_repetitive_values=True)
     return tup

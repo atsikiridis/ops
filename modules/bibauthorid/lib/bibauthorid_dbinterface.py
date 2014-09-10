@@ -5114,3 +5114,13 @@ def get_ratios_of_claims(name):
 def get_average_ratio_of_claims(name):
     ratios = [ratio for _, ratio in get_ratios_of_claims(name)]
     return sum(ratios) / len(ratios)
+
+def get_name_from_bibref(bibref):
+
+    if bibref[0] == 100:
+        name = run_sql("select value from bib10x where id = %d" % bibref[1])
+
+    if bibref[0] == 700:
+        name = run_sql("select value from bib70x where id = %d" % bibref[1])
+
+    return name[0][0]

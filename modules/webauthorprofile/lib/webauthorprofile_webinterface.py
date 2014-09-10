@@ -773,11 +773,17 @@ class WebAuthorPages(WebInterfaceDirectory):
                 else:
                     datasets_pubs_to_display = list()
 
-                arxiv_pubs = [(title, get_arxiv_url(arxiv_id), 'arxiv') for arxiv_id, title
-                              in external_pubs['arxiv'].iteritems()]
-                doi_pubs = [(title, get_doi_url(doi_id), 'doi') for doi_id, title in external_pubs['doi'].iteritems()]
+                if json_data.has_key('fake'):
+                    external_pubs = []
+                else:
+                    try:
+                        arxiv_pubs = [(title, get_arxiv_url(arxiv_id), 'arxiv') for arxiv_id, title
+                                      in external_pubs['arxiv'].iteritems()]
+                        doi_pubs = [(title, get_doi_url(doi_id), 'doi') for doi_id, title in external_pubs['doi'].iteritems()]
 
-                external_pubs = arxiv_pubs + doi_pubs
+                        external_pubs = arxiv_pubs + doi_pubs
+                    except:
+                        external_pubs = []
 
                 try:
                     canonical_name = get_canonical_name_of_author(person_id)[0][0]
