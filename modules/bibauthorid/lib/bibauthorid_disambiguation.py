@@ -29,6 +29,8 @@ from invenio.bibauthorid_dbinterface import get_cluster_info_by_task_id
 from invenio.bibauthorid_dbinterface import get_clusters
 from invenio.bibauthorid_dbinterface import get_matchable_name_by_pid
 from invenio.bibauthorid_dbinterface import get_name_from_bibref
+from invenio.bibauthorid_dbinterface import get_authors_of_paper
+from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
@@ -37,12 +39,21 @@ from invenio.bibauthorid_merge import \
     merge_dynamic as merge_disambiguation_results
 from invenio.bibauthorid_merge import get_matched_clusters
 
+from invenio.intbitset import intbitset
+
 from invenio.bibauthorid_templates import WebProfilePage
 
 from invenio.bibauthorid_webapi import get_person_redirect_link
 
 from invenio.webauthorprofile_corefunctions import _get_institute_pubs_dict
 from invenio.webauthorprofile_corefunctions import _get_collabtuples_bai
+from invenio.webauthorprofile_corefunctions import _get_pubs_per_year_dictionary
+from invenio.webauthorprofile_corefunctions import _get_kwtuples_bai
+from invenio.webauthorprofile_corefunctions import _get_fieldtuples_bai_tup
+from invenio.webauthorprofile_corefunctions import _get_summarize_records
+from invenio.webauthorprofile_config import deserialize
+
+from invenio.search_engine_summarizer import generate_citation_summary
 
 from invenio.webuser import page_not_authorized, get_session
 import invenio.bibauthorid_webapi as web_api
@@ -52,6 +63,7 @@ from invenio.bibsched import bibsched_send_signal
 from invenio.config import CFG_SITE_LANG, CFG_BASE_URL
 from invenio.webpage import page
 from invenio.urlutils import redirect_to_url
+from invenio.bibformat import format_records
 
 from datetime import datetime
 from collections import OrderedDict
@@ -438,18 +450,41 @@ class FakeProfile(WebInterfaceDirectory):
     """
 
     @classmethod
-    def _get_pubs_from_matching(cls, person_id):
-
-        matching = _get_disambiguation_matching(person_id)[0]
-
-        recids = [x for _, _, x in matching]
-
-        return recids
-
-
-    @classmethod
     def get_coauthors(cls, person_id):
-        return [], True
+
+        names = cls.get_person_names_dicts(person_id)[0]['db_names_dict']
+
+        personids = {}
+        matching = cls._get_pubs_from_matching(person_id)
+        for match in matching:
+            authors = get_authors_of_paper(match)
+            for author in authors:
+                if author in names:
+                    continue
+                if author in personids:
+                    personids[author] += 1
+                else:
+                    personids[author] = 1
+
+        coauthors = []
+
+        cname_map = get_pid_to_canonical_name_map()
+
+        for p in personids:
+            try:
+                cn = cname_map[p[0]]
+            except KeyError:
+                cn = str(p)
+            #ln is used only for exact search in case canonical name is not available. Never happens
+            # with bibauthorid, let's print there the canonical name.
+            #ln = max_key(gathered_names_by_personid(p[0]), key=len)
+            ln = str(cn)
+            # exact number of papers based on query. Not activated for performance reasons.
+            # paps = len(perform_request_search(rg=0, p="author:%s author:%s" % (cid, cn)))
+            paps = personids[p]
+            if paps:
+                coauthors.append((cn, ln, paps))
+        return coauthors, True
 
     @classmethod
     def get_collabtuples(cls, person_id):
@@ -462,29 +497,23 @@ class FakeProfile(WebInterfaceDirectory):
 
     @classmethod
     def get_fieldtuples(cls, person_id):
-        return [], True
+
+        pubs = cls._get_pubs_from_matching(person_id)
+
+        return _get_fieldtuples_bai_tup(pubs, person_id), True
 
     @classmethod
     def get_summarize_records(cls, person_id):
-        return [[{'Citeable papers': [], 'Published only': []},
-                 {'Citeable papers': {'h-index': 0, 'total_cites': 0, 'avg_cites': 0,
-                                      'breakdown': {'Known papers (10-49)': 0,
-                                                    'Unknown papers (0)': 0,
-                                                    'Less known papers (1-9)': 0,
-                                                    'Famous papers (250-499)': 0,
-                                                    'Well-known papers (50-99)': 0,
-                                                    'Very well-known papers (100-249)': 0,
-                                                    'Renowned papers (500+)': 0}},
-                  'Published only': {'h-index': 0, 'total_cites': 0,
-                                     'avg_cites': 0,
-                                     'breakdown': {'Known papers (10-49)': 0,
-                                                   'Unknown papers (0)': 0,
-                                                   'Less known papers (1-9)': 0,
-                                                   'Famous papers (250-499)': 0,
-                                                   'Well-known papers (50-99)': 0,
-                                                   'Very well-known papers (100-249)': 0,
-                                                   'Renowned papers (500+)': 0}}}],
-                'author:"H.C.Cheng..1"'], True
+
+        pubs = cls._get_pubs_from_matching(person_id)
+
+        citation_summary = generate_citation_summary(intbitset(pubs))
+
+        # the serialization function (msgpack.packb) cannot serialize an intbitset
+        for i in citation_summary[0].keys():
+            citation_summary[0][i] = list(citation_summary[0][i])
+
+        return ((citation_summary,), True)
 
     @classmethod
     def get_institute_pubs(cls, person_id):
@@ -500,15 +529,25 @@ class FakeProfile(WebInterfaceDirectory):
 
     @classmethod
     def get_kwtuples(cls, person_id):
-        return [], True
+
+        pubs = cls._get_pubs_from_matching(person_id)
+
+        return _get_kwtuples_bai(pubs, person_id), True
 
     @classmethod
     def get_pubs(cls, person_id):
-        return [], True
+        return cls._get_pubs_from_matching(person_id), True
 
     @classmethod
     def get_pubs_per_year(cls, person_id):
-        return {}, True
+
+        recids = cls._get_pubs_from_matching(person_id)
+
+        a = format_records(recids, 'WAPDAT')
+        a = [deserialize(p) for p in a.strip().split('!---THEDELIMITER---!') if p]
+
+
+        return _get_pubs_per_year_dictionary(a), True
 
     @classmethod
     def get_person_names_dicts(cls, person_id):
@@ -547,4 +586,29 @@ class FakeProfile(WebInterfaceDirectory):
 
     @classmethod
     def get_selfpubs(cls, person_id):
-        return  [], True
+
+        recids = cls._get_pubs_from_matching(person_id)
+
+        return filter(cls._is_selfpub, recids), True
+
+
+    @classmethod
+    def _get_pubs_from_matching(cls, person_id):
+
+        try:
+            matching = _get_disambiguation_matching(person_id)[0]
+        except IndexError:
+            #TO DO
+            matching = ()
+
+        recids = [x for _, _, x in matching]
+
+        return recids
+
+
+    @classmethod
+    def _is_selfpub(cls, recid):
+
+        authors = get_authors_of_paper(recid)
+
+        return len(authors) == 1
