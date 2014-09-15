@@ -31,6 +31,7 @@ from invenio.bibauthorid_dbinterface import get_matchable_name_by_pid
 from invenio.bibauthorid_dbinterface import get_name_from_bibref
 from invenio.bibauthorid_dbinterface import get_authors_of_paper
 from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
+from invenio.bibauthorid_dbinterface import get_title_of_paper
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
@@ -524,6 +525,18 @@ class FakeProfile(WebInterfaceDirectory):
         recids = cls._get_pubs_from_matching(person_id)
 
         result = _get_institute_pubs_dict(recids, namesdict)
+
+        return result, True
+
+    @classmethod
+    def get_internal_publications(cls, person_id):
+
+        matching = _get_disambiguation_matching(person_id)
+        result = {}
+
+        for paper in matching[0]:
+            int_paper = int(paper[2])
+            result[int_paper] = get_title_of_paper(int_paper)
 
         return result, True
 

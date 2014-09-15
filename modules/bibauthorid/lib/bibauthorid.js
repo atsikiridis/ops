@@ -2139,7 +2139,7 @@ $(document).ready(function() {
 
       "publications-list": function ( $box ) {
 
-        $(".pub-tabs a:first").tab('show');
+        $(".normal-pub-tabs a:first").tab('show');
         MathJax.Hub.Queue( [ "Typeset", MathJax.Hub, $box.get(0) ] );
 
       },

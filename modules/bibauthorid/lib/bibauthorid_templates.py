@@ -357,6 +357,18 @@ class WebProfilePage():
         """
         return WebProfilePage.environment.get_template("publications_box.html").render(template_vars)
 
+    @staticmethod
+    def render_publications_list_content(template_vars):
+        """
+        Creates HTML Markup for Publications List
+
+        @param **kwargs: A dictionary with at least the following keys:
+            internal_pubs
+        @return: HTML Markup
+        @rtype: str
+        """
+        return WebProfilePage.environment.get_template("publications_list.html").render(template_vars)
+
     def get_profile_page_body(self, last_computed, trial="default"):
         if trial is not None or not trial == "default":
             file_ext = "_" + str(trial)

@@ -1,0 +1,7 @@
+{% if not internal_pubs %}
+<h4>No publications.</h4>
+{% endif %}
+<ol>
+{% for title, url, recid in internal_pubs %}
+    <li><a href="{{ url }}">{{ '%s%s' % (base_url, url) if not title or title == '' else title }}</a></li>{% endfor %}
+</ol>

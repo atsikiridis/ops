@@ -26,9 +26,10 @@ etc_DATA    = head.html \
             generic_wrapper.html \
             citations_summary.html \
             publications_box.html \
+            publications_list.html \
             manage_profile.html \
             personal_details_box.html \
-	    autoclaim_box.html \
+            autoclaim_box.html \
             help.html \
             dashboard.html \
             disambiguation.html \

@@ -68,17 +68,25 @@
                         <li><a href="#internal-pubs" data-toggle="tab">Publications</a>
                         </li>
                     {% endif %}
-                    {% if visible["datasets"] %}
-                        <li><a href="#datasets" data-toggle="tab">Datasets</a>
-                        </li>
-                    {% endif %}
-                    {% if visible["external"] %}
-                        <li><a href="#external-pubs" data-toggle="tab">External</a>
+                </ul>
+            </div>
+            <div class="bai-box-content" id="pubs_list" data-box-source="fake-publications-list" data-fake="1"></div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block not_fake_publications %}
+    {% if element_width["publication_box"] %}
+        <div class="well well-small inspire-well">
+            <div class="bai-box-title">
+                <ul class="pub-tabs">
+                    {% if visible["publications"] %}
+                        <li><a href="#internal-pubs" data-toggle="tab">Publications</a>
                         </li>
                     {% endif %}
                 </ul>
             </div>
-            <div class="bai-box-content" id="pubs_list" data-box-source="fake-publications-list" data-fake="1">{% include 'publications_box.html' %}</div>
+            <div class="bai-box-content" id="pubs_list" data-box-source="publications-list" data-fake="0"></div>
         </div>
     {% endif %}
 {% endblock %}
