@@ -1,10 +1,12 @@
 """Classes for disambiguation scheduling and monitoring."""
 
-from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
+from collections import OrderedDict
+from datetime import datetime
+from signal import SIGTERM
 
 from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, \
     WEDGE_THRESHOLD, AID_VISIBILITY
-from invenio.bibauthorid_templates import initialize_jinja2_environment
+
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
 from invenio.bibauthorid_dbinterface import \
     get_papers_per_disambiguation_cluster
@@ -32,6 +34,7 @@ from invenio.bibauthorid_dbinterface import get_name_from_bibref
 from invenio.bibauthorid_dbinterface import get_authors_of_paper
 from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
 from invenio.bibauthorid_dbinterface import get_title_of_paper
+
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
@@ -40,11 +43,24 @@ from invenio.bibauthorid_merge import \
     merge_dynamic as merge_disambiguation_results
 from invenio.bibauthorid_merge import get_matched_clusters
 
-from invenio.intbitset import intbitset
-
+from invenio.bibauthorid_templates import initialize_jinja2_environment
 from invenio.bibauthorid_templates import WebProfilePage
 
-from invenio.bibauthorid_webapi import get_person_redirect_link
+import invenio.bibauthorid_webapi as web_api
+
+from invenio.bibformat import format_records
+
+from invenio.bibsched import bibsched_send_signal
+
+from invenio.bibtask import task_low_level_submission
+
+from invenio.config import CFG_SITE_LANG, CFG_BASE_URL
+
+from invenio.intbitset import intbitset
+
+from invenio.search_engine_summarizer import generate_citation_summary
+
+from invenio.urlutils import redirect_to_url
 
 from invenio.webauthorprofile_corefunctions import _get_institute_pubs_dict
 from invenio.webauthorprofile_corefunctions import _get_collabtuples_bai
@@ -52,25 +68,15 @@ from invenio.webauthorprofile_corefunctions import _get_pubs_per_year_dictionary
 from invenio.webauthorprofile_corefunctions import _get_kwtuples_bai
 from invenio.webauthorprofile_corefunctions import _get_fieldtuples_bai_tup
 from invenio.webauthorprofile_corefunctions import _get_summarize_records
+
 from invenio.webauthorprofile_config import deserialize
 
-from invenio.search_engine_summarizer import generate_citation_summary
+from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
 
-from invenio.webuser import page_not_authorized, get_session
-import invenio.bibauthorid_webapi as web_api
-
-from invenio.bibtask import task_low_level_submission
-from invenio.bibsched import bibsched_send_signal
-from invenio.config import CFG_SITE_LANG, CFG_BASE_URL
 from invenio.webpage import page
-from invenio.urlutils import redirect_to_url
-from invenio.bibformat import format_records
 
-from datetime import datetime
-from collections import OrderedDict
-
-from signal import SIGTERM
-
+from invenio.webuser import page_not_authorized
+from invenio.webuser import get_session
 
 def _schedule_disambiguation(cluster, name_of_user, threshold):
     """
@@ -128,9 +134,9 @@ class MonitoredDisambiguation(object):
         return monitored_tortoise
 
     def _calculate_stats(self):
-        """
-        Gets data for current data in aidRESULTS.
-        """
+
+        """Gets data for current data in aidRESULTS."""
+
         stats = OrderedDict()
         stats['Task ID'] = self._task_id
         stats['Name'] = self._name
@@ -173,8 +179,8 @@ class MonitoredDisambiguation(object):
 
 
 class DisambiguationTask(object):
-    """
-    A scheduled task to run disambiguation on a particular cluster
+
+    """A scheduled task to run disambiguation on a particular cluster
     (surname).
     """
 
@@ -192,8 +198,7 @@ class DisambiguationTask(object):
         self._statistics = None
 
     def schedule(self):
-        """
-        Schedules a new disambiguation for a specified cluster after
+        """Schedules a new disambiguation for a specified cluster after
         logging it to aidDISAMBIGUATIONLOG.
         """
         if self.running:
@@ -264,8 +269,8 @@ class DisambiguationTask(object):
 
 
 class WebAuthorDashboard(WebInterfaceDirectory):
-    """
-    Handles /author/dashboard/ a web interface for administrators to run
+
+    """Handles /author/dashboard/ a web interface for administrators to run
     disambiguation.
     """
 
@@ -366,10 +371,12 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
                     show_title_p=False)
 
     def _lookup(self, component, path):
+
         """
         Necessary for webstyle in order to be able to use
         /author/disambiguation/1 etc.
         """
+
         if len(path) == 0:
             return WebAuthorDisambiguationInfo(component), path
         elif len(path) == 1 and component == 'profile':
@@ -378,8 +385,7 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
 
 class WebAuthorProfileComparison(WebInterfaceDirectory):
 
-    """
-    Handles /author/disambiguation/profile/
+    """Handles /author/disambiguation/profile/
     Allows admin to check changes in profile after the algorithm was run.
     """
 
@@ -397,7 +403,7 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
 
         argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG)})
 
-        full_name = get_person_redirect_link(int(self.person))
+        full_name = web_api.get_person_redirect_link(int(self.person))
 
         page_title = "Disambiguation profile comparison for %s" % full_name
         web_page = WebProfilePage('fake_profile', page_title)
@@ -422,9 +428,10 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
                     language=argd['ln'],
                     show_title_p=False)
 
+
 def _get_disambiguation_matching(person):
-    """
-    Method returning the signatures matched with this personid. Accepts
+
+    """Method returning the signatures matched with this personid. Accepts
     both 'real' pids ( from aidPERSONIDPAPERS ) and 'fake' pids
     (from aidRESULTS).
     :param personid: int if 'real' pid, str if 'fake' pid (e.g. ellis.0)
@@ -444,14 +451,17 @@ def _get_disambiguation_matching(person):
     clusters = get_matched_clusters(name)
     return [sigs for sigs, pid in clusters if pid == person]
 
+
 class FakeProfile(WebInterfaceDirectory):
 
-    """
-    Holder for functions which provide generating of fake profile's boxes.
+    """Holder for functions which provide generating of fake profile's boxes.
     """
 
     @classmethod
     def get_coauthors(cls, person_id):
+
+        """Fetches coauthor data from aidRESULTS table.
+        """
 
         names = cls.get_person_names_dicts(person_id)[0]['db_names_dict']
 
@@ -471,24 +481,22 @@ class FakeProfile(WebInterfaceDirectory):
 
         cname_map = get_pid_to_canonical_name_map()
 
-        for p in personids:
+        for person in personids:
             try:
-                cn = cname_map[p[0]]
+                cname = cname_map[person[0]]
             except KeyError:
-                cn = str(p)
-            #ln is used only for exact search in case canonical name is not available. Never happens
-            # with bibauthorid, let's print there the canonical name.
-            #ln = max_key(gathered_names_by_personid(p[0]), key=len)
-            ln = str(cn)
-            # exact number of papers based on query. Not activated for performance reasons.
-            # paps = len(perform_request_search(rg=0, p="author:%s author:%s" % (cid, cn)))
-            paps = personids[p]
+                cname = str(person)
+            lname = str(cname)
+            paps = personids[person]
             if paps:
-                coauthors.append((cn, ln, paps))
+                coauthors.append((cname, lname, paps))
         return coauthors, True
 
     @classmethod
     def get_collabtuples(cls, person_id):
+
+        """Fetches collabtuples from aidRESULTS table.
+        """
 
         recids = cls._get_pubs_from_matching(person_id)
 
@@ -499,6 +507,9 @@ class FakeProfile(WebInterfaceDirectory):
     @classmethod
     def get_fieldtuples(cls, person_id):
 
+        """Fetches fieldtuples from aidRESULTS table.
+        """
+
         pubs = cls._get_pubs_from_matching(person_id)
 
         return _get_fieldtuples_bai_tup(pubs, person_id), True
@@ -506,11 +517,13 @@ class FakeProfile(WebInterfaceDirectory):
     @classmethod
     def get_summarize_records(cls, person_id):
 
+        """Fetches citations summarision from aidRESULTS table.
+        """
+
         pubs = cls._get_pubs_from_matching(person_id)
 
         citation_summary = generate_citation_summary(intbitset(pubs))
 
-        # the serialization function (msgpack.packb) cannot serialize an intbitset
         for i in citation_summary[0].keys():
             citation_summary[0][i] = list(citation_summary[0][i])
 
@@ -518,6 +531,9 @@ class FakeProfile(WebInterfaceDirectory):
 
     @classmethod
     def get_institute_pubs(cls, person_id):
+
+        """Fetches institute pubs from aidRESULTS table."""
+
         namesdict, status = cls.get_person_names_dicts(person_id)
         if not status:
             return None, False
@@ -531,6 +547,8 @@ class FakeProfile(WebInterfaceDirectory):
     @classmethod
     def get_internal_publications(cls, person_id):
 
+        """Fetches internal publications from aidRESULTS table."""
+
         matching = _get_disambiguation_matching(person_id)
         result = {}
 
@@ -543,31 +561,44 @@ class FakeProfile(WebInterfaceDirectory):
     @classmethod
     def get_kwtuples(cls, person_id):
 
+        """Fetches kwtuples from aidRESULTS table."""
+
         pubs = cls._get_pubs_from_matching(person_id)
 
         return _get_kwtuples_bai(pubs, person_id), True
 
     @classmethod
     def get_pubs(cls, person_id):
+
+        """Fetches publications from aidRESULTS table."""
+
         return cls._get_pubs_from_matching(person_id), True
 
     @classmethod
     def get_pubs_per_year(cls, person_id):
 
+        """Fetches a dictionary from aidRESULTS table 
+        with papers publications dates.
+        """
+
         recids = cls._get_pubs_from_matching(person_id)
 
-        a = format_records(recids, 'WAPDAT')
-        a = [deserialize(p) for p in a.strip().split('!---THEDELIMITER---!') if p]
+        formatted_recids = format_records(recids, 'WAPDAT')
+        formatted_recids = [deserialize(p) for p in
+             formatted_recids.strip().split('!---THEDELIMITER---!') if p]
 
 
-        return _get_pubs_per_year_dictionary(a), True
+        return _get_pubs_per_year_dictionary(formatted_recids), True
 
     @classmethod
     def get_person_names_dicts(cls, person_id):
+
+        """Fetches a dictionary with person names from aidRESULTS table."""
+
         matching = _get_disambiguation_matching(person_id)
 
-        result = { 'db_names_dict': {}, 'names_dict': {},
-                   'names_to_records': {}
+        result = {'db_names_dict': {}, 'names_dict': {},
+                  'names_to_records': {}
                  }
         helper_dict = {}
 
@@ -579,16 +610,16 @@ class FakeProfile(WebInterfaceDirectory):
                     bibref = (int(bibref_table), bibref_value, )
                     name = get_name_from_bibref(bibref)
                     helper_dict[(bibref_table, bibref_value)] = \
-                            [name,[bibrec]]
+                            [name, [bibrec]]
 
         longest_name = ''
-        for key, value in helper_dict.iteritems():
+        for _, value in helper_dict.iteritems():
             if len(value[0]) > len(longest_name):
                 longest_name = value[0]
             if value[0] in result['db_names_dict']:
                 result['db_names_dict'][value[0]] += len(value[1])
                 result['names_dict'][value[0]] += len(value[1])
-                result['names_to_records'][value[0]] + value[1]
+                result['names_to_records'][value[0]] += value[1]
             else:
                 result['db_names_dict'][value[0]] = len(value[1])
                 result['names_dict'][value[0]] = len(value[1])
@@ -600,13 +631,20 @@ class FakeProfile(WebInterfaceDirectory):
     @classmethod
     def get_selfpubs(cls, person_id):
 
+        """Fetches publications written only by this author and by nobody
+        else from aidRESULTS table.
+        """
+
         recids = cls._get_pubs_from_matching(person_id)
 
-        return filter(cls._is_selfpub, recids), True
-
+        return [pap for pap in recids if cls._is_selfpub(pap)], True
 
     @classmethod
     def _get_pubs_from_matching(cls, person_id):
+
+        """Fetches publications from given matching. The matching is a result
+        of merge algorithm simulation.
+        """
 
         try:
             matching = _get_disambiguation_matching(person_id)[0]
@@ -618,9 +656,12 @@ class FakeProfile(WebInterfaceDirectory):
 
         return recids
 
-
     @classmethod
     def _is_selfpub(cls, recid):
+
+        """Checks whether a publication doesn't have more authors than the one
+        given as an argument.
+        """
 
         authors = get_authors_of_paper(recid)
 
