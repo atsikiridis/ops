@@ -29,7 +29,7 @@ from invenio.bibauthorid_dbinterface import \
 from invenio.bibauthorid_dbinterface import get_bibsched_task_id_by_task_name
 from invenio.bibauthorid_dbinterface import get_cluster_info_by_task_id
 from invenio.bibauthorid_dbinterface import get_clusters
-from invenio.bibauthorid_dbinterface import get_matchable_name_by_pid
+from invenio.bibauthorid_dbinterface import get_last_name_by_pid
 from invenio.bibauthorid_dbinterface import get_name_from_bibref
 from invenio.bibauthorid_dbinterface import get_authors_of_paper
 from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
@@ -439,9 +439,7 @@ def _get_disambiguation_matching(person):
     """
 
     try:
-        name = get_matchable_name_by_pid(int(person)).split(',', 1)[0]
-        #To do: remove after fix
-        name = 'cheng'
+        name = get_last_name_by_pid(int(person))
     except AttributeError:
         raise StandardError("There is no matchable name for pid=%s"
                             % person)
@@ -449,7 +447,7 @@ def _get_disambiguation_matching(person):
         return get_clusters(personid=False, cluster=person)
 
     clusters = get_matched_clusters(name)
-    return [sigs for sigs, pid in clusters if pid == person]
+    return [sigs for sigs, pid in clusters if pid == int(person)]
 
 
 class FakeProfile(WebInterfaceDirectory):

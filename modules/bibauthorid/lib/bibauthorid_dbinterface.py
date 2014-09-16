@@ -53,6 +53,7 @@ from invenio.bibauthorid_name_utils import split_name_parts, \
 from invenio.bibauthorid_general_utils import memoized
 from invenio.bibauthorid_general_utils import monitored
 from invenio.bibauthorid_logutils import Logger
+from invenio.bibauthorid_name_utils import generate_last_name_cluster_str
 
 import cPickle
 
@@ -4921,10 +4922,10 @@ def author_exists(personid):
 
 # Disambiguation web interface
 
-def get_matchable_name_by_pid(pid):
+def get_last_name_by_pid(pid):
     query = "select distinct m_name from aidPERSONIDPAPERS where personid= %s"
     try:
-        return run_sql(query, (pid,))[0][0]
+        return generate_last_name_cluster_str(run_sql(query, (pid,))[0][0])
     except IndexError:
         return None
 

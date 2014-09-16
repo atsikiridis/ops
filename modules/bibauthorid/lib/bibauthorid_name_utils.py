@@ -926,8 +926,8 @@ def generate_last_name_cluster_str(name):
     Use this function to find the last name cluster
     this name should be associated with.
     '''
-    m_name, surname_length = create_matchable_name(name,
-                                                   get_surname_words_length=True)
+    m_name = create_matchable_name(name)
+
     m_name_parts = m_name.split()
     no_of_surname_chars = 0
     index_of_surnames = 0
