@@ -11,6 +11,16 @@
     {% endif %}
 {% endblock %}
 
+{% block no_profile %}
+    {% if visible["personal_details"] %}
+        <div class="well well-small error-well">
+            <div class="bai-box-title">
+                <span>After the algorithm run this profile does not exist!</span>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
 {% block fake_citations_summary %}
     {% if visible["citations_summary"] %}
         <div class="well well-small inspire-well">

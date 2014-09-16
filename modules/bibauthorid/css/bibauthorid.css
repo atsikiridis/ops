@@ -696,6 +696,11 @@
     background-color: #ffffee;
 }
 
+.bsw .error-well {
+    background-color: #ffdddd;
+    border: 1px solid #444444;
+}
+
 .bai-box-title {
     color: #444444;
     margin-bottom: 10px;

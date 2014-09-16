@@ -35,6 +35,8 @@ from invenio.bibauthorid_dbinterface import get_authors_of_paper
 from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
 from invenio.bibauthorid_dbinterface import get_title_of_paper
 
+from invenio.bibauthorid_general_utils import memoized
+
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
@@ -379,8 +381,9 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
 
         if len(path) == 0:
             return WebAuthorDisambiguationInfo(component), path
-        elif len(path) == 1 and component == 'profile':
-            return WebAuthorProfileComparison(path[0]), []
+        elif len(path) == 2 and path[0] == 'profile':
+            #in form of /author/disambiguation/(task_id)/profile/(pid)
+            return WebAuthorProfileComparison(path[1], component), []
 
 
 class WebAuthorProfileComparison(WebInterfaceDirectory):
@@ -389,10 +392,11 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
     Allows admin to check changes in profile after the algorithm was run.
     """
 
-    def __init__(self, person):
+    def __init__(self, person, task_id):
         if not CFG_BIBAUTHORID_ENABLED:
             return
         self.person = person
+        self.task_id = task_id
 
     def __call__(self, req, form):
         web_api.session_bareinit(req)
@@ -403,23 +407,32 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
 
         argd = wash_urlargd(form, {'ln': (str, CFG_SITE_LANG)})
 
-        full_name = web_api.get_person_redirect_link(int(self.person))
-
-        page_title = "Disambiguation profile comparison for %s" % full_name
-        web_page = WebProfilePage('fake_profile', page_title)
-
         content = {
             'extended_template' : 'profile_comparison.html',
             'visible' : AID_VISIBILITY,
             'person_id': self.person,
-            'element_width' : {
-                'publication_box' : '12',
-                'coauthors' : '12',
-                'papers' : '12',
-                'subject_categories' : '12',
-                'frequent_keywords' : '12'
-            }
+            'element_width' : self._get_full_width(),
+            'fake' : True,
+            'task_id': self.task_id
         }
+
+        try:
+            int_person = int(self.person)
+            full_name = web_api.get_person_redirect_link(int_person)
+            #The result is not used here, but it will be used in every box
+            #rendering. Here it is used to decide if the new profile exists.
+            computed_matching = get_disambiguation_matching(int_person,
+                                                            int(self.task_id))
+        except ValueError:
+            #TO DO
+            full_name = self.person
+
+        page_title = "Disambiguation profile comparison for %s" % full_name
+        web_page = WebProfilePage('fake_profile', page_title)
+
+
+        if len(computed_matching) == 0:
+            content['no_new'] = True
 
         return page(title=page_title,
                     metaheaderadd=web_page.get_head().encode('utf-8'),
@@ -428,6 +441,32 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
                     language=argd['ln'],
                     show_title_p=False)
 
+    @classmethod
+    def _get_full_width(cls):
+
+        """Get dictionary for profile page template which widens all boxes as
+        much as possible.
+        """
+
+        return {
+            'publication_box' : '12',
+            'coauthors' : '12',
+            'papers' : '12',
+            'subject_categories' : '12',
+            'frequent_keywords' : '12'
+        }
+
+#Memoization is needed as we are calling get_disambiguation_matching every time
+#we render a box.
+
+#We need also to pass task_id to memoizer. If not, a curator might see a
+#fake profile from the previous algorithm run.
+
+def get_disambiguation_matching_no_m(person, task_id):
+    return _get_disambiguation_matching(person)
+
+get_disambiguation_matching = \
+        memoized(get_disambiguation_matching_no_m)
 
 def _get_disambiguation_matching(person):
 
@@ -441,8 +480,7 @@ def _get_disambiguation_matching(person):
     try:
         name = get_last_name_by_pid(int(person))
     except AttributeError:
-        raise StandardError("There is no matchable name for pid=%s"
-                            % person)
+        raise StandardError("There is no matchable name for pid=%s" % person)
     except ValueError:
         return get_clusters(personid=False, cluster=person)
 
@@ -456,15 +494,16 @@ class FakeProfile(WebInterfaceDirectory):
     """
 
     @classmethod
-    def get_coauthors(cls, person_id):
+    def get_coauthors(cls, person_id, task_id):
 
         """Fetches coauthor data from aidRESULTS table.
         """
 
-        names = cls.get_person_names_dicts(person_id)[0]['db_names_dict']
+        names = cls.get_person_names_dicts(person_id,
+                                           task_id)[0]['db_names_dict']
 
         personids = {}
-        matching = cls._get_pubs_from_matching(person_id)
+        matching = cls._get_pubs_from_matching(person_id, task_id)
         for match in matching:
             authors = get_authors_of_paper(match)
             for author in authors:
@@ -491,34 +530,34 @@ class FakeProfile(WebInterfaceDirectory):
         return coauthors, True
 
     @classmethod
-    def get_collabtuples(cls, person_id):
+    def get_collabtuples(cls, person_id, task_id):
 
         """Fetches collabtuples from aidRESULTS table.
         """
 
-        recids = cls._get_pubs_from_matching(person_id)
+        recids = cls._get_pubs_from_matching(person_id, task_id)
 
         tup = _get_collabtuples_bai(recids, person_id)
 
         return tup, True
 
     @classmethod
-    def get_fieldtuples(cls, person_id):
+    def get_fieldtuples(cls, person_id, task_id):
 
         """Fetches fieldtuples from aidRESULTS table.
         """
 
-        pubs = cls._get_pubs_from_matching(person_id)
+        pubs = cls._get_pubs_from_matching(person_id, task_id)
 
         return _get_fieldtuples_bai_tup(pubs, person_id), True
 
     @classmethod
-    def get_summarize_records(cls, person_id):
+    def get_summarize_records(cls, person_id, task_id):
 
         """Fetches citations summarision from aidRESULTS table.
         """
 
-        pubs = cls._get_pubs_from_matching(person_id)
+        pubs = cls._get_pubs_from_matching(person_id, task_id)
 
         citation_summary = generate_citation_summary(intbitset(pubs))
 
@@ -528,72 +567,72 @@ class FakeProfile(WebInterfaceDirectory):
         return ((citation_summary,), True)
 
     @classmethod
-    def get_institute_pubs(cls, person_id):
+    def get_institute_pubs(cls, person_id, task_id):
 
         """Fetches institute pubs from aidRESULTS table."""
 
-        namesdict, status = cls.get_person_names_dicts(person_id)
+        namesdict, status = cls.get_person_names_dicts(person_id, task_id)
         if not status:
             return None, False
 
-        recids = cls._get_pubs_from_matching(person_id)
+        recids = cls._get_pubs_from_matching(person_id, task_id)
 
         result = _get_institute_pubs_dict(recids, namesdict)
 
         return result, True
 
     @classmethod
-    def get_internal_publications(cls, person_id):
+    def get_internal_publications(cls, person_id, task_id):
 
         """Fetches internal publications from aidRESULTS table."""
 
-        matching = _get_disambiguation_matching(person_id)
+        matching = get_disambiguation_matching(person_id, task_id)
         result = {}
 
-        for paper in matching[0]:
-            int_paper = int(paper[2])
-            result[int_paper] = get_title_of_paper(int_paper)
+        if matching:
+            for paper in matching[0]:
+                int_paper = int(paper[2])
+                result[int_paper] = get_title_of_paper(int_paper)
 
         return result, True
 
     @classmethod
-    def get_kwtuples(cls, person_id):
+    def get_kwtuples(cls, person_id, task_id):
 
         """Fetches kwtuples from aidRESULTS table."""
 
-        pubs = cls._get_pubs_from_matching(person_id)
+        pubs = cls._get_pubs_from_matching(person_id, task_id)
 
         return _get_kwtuples_bai(pubs, person_id), True
-
     @classmethod
-    def get_pubs(cls, person_id):
+    def get_pubs(cls, person_id, task_id):
 
         """Fetches publications from aidRESULTS table."""
 
-        return cls._get_pubs_from_matching(person_id), True
+        return cls._get_pubs_from_matching(person_id, task_id), True
 
     @classmethod
-    def get_pubs_per_year(cls, person_id):
+    def get_pubs_per_year(cls, person_id, task_id):
 
-        """Fetches a dictionary from aidRESULTS table 
+        """Fetches a dictionary from aidRESULTS table
         with papers publications dates.
         """
 
-        recids = cls._get_pubs_from_matching(person_id)
+        recids = cls._get_pubs_from_matching(person_id, task_id)
 
         formatted_recids = format_records(recids, 'WAPDAT')
-        formatted_recids = [deserialize(p) for p in
-             formatted_recids.strip().split('!---THEDELIMITER---!') if p]
+        formatted_recids = [deserialize(p) for p in \
+                formatted_recids.strip().split('!---THEDELIMITER---!') if p]
 
 
         return _get_pubs_per_year_dictionary(formatted_recids), True
 
     @classmethod
-    def get_person_names_dicts(cls, person_id):
+    def get_person_names_dicts(cls, person_id, task_id):
 
         """Fetches a dictionary with person names from aidRESULTS table."""
 
-        matching = _get_disambiguation_matching(person_id)
+        matching = get_disambiguation_matching(person_id, task_id)
 
         result = {'db_names_dict': {}, 'names_dict': {},
                   'names_to_records': {}
@@ -624,28 +663,29 @@ class FakeProfile(WebInterfaceDirectory):
                 result['names_to_records'][value[0]] = value[1]
 
         result['longest_name'] = longest_name
+
         return result, True
 
     @classmethod
-    def get_selfpubs(cls, person_id):
+    def get_selfpubs(cls, person_id, task_id):
 
         """Fetches publications written only by this author and by nobody
         else from aidRESULTS table.
         """
 
-        recids = cls._get_pubs_from_matching(person_id)
+        recids = cls._get_pubs_from_matching(person_id, task_id)
 
         return [pap for pap in recids if cls._is_selfpub(pap)], True
 
     @classmethod
-    def _get_pubs_from_matching(cls, person_id):
+    def _get_pubs_from_matching(cls, person_id, task_id):
 
         """Fetches publications from given matching. The matching is a result
         of merge algorithm simulation.
         """
 
         try:
-            matching = _get_disambiguation_matching(person_id)[0]
+            matching = get_disambiguation_matching(person_id, task_id)[0]
         except IndexError:
             #TO DO
             matching = ()

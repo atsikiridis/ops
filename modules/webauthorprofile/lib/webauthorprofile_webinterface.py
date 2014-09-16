@@ -473,7 +473,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    namesdict, namesdictStatus = FakeProfile.get_person_names_dicts(person_id)
+                    namesdict, namesdictStatus = FakeProfile.get_person_names_dicts(person_id, json_data['task_id'])
                 else:
                     namesdict, namesdictStatus = get_person_names_dicts(person_id)
                 if not namesdict:
@@ -502,8 +502,8 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    pubs, pubsStatus = FakeProfile.get_pubs(person_id)
-                    selfpubs, selfpubsStatus = FakeProfile.get_selfpubs(person_id)
+                    pubs, pubsStatus = FakeProfile.get_pubs(person_id, json_data['task_id'])
+                    selfpubs, selfpubsStatus = FakeProfile.get_selfpubs(person_id, json_data['task_id'])
                 else:
                     pubs, pubsStatus = get_pubs(person_id)
                     selfpubs, selfpubsStatus = get_self_pubs(person_id)
@@ -536,7 +536,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    kwtuples, kwtuplesStatus = FakeProfile.get_kwtuples(person_id)
+                    kwtuples, kwtuplesStatus = FakeProfile.get_kwtuples(person_id, json_data['task_id'])
                 else:
                     kwtuples, kwtuplesStatus = get_kwtuples(person_id)
                 if kwtuples:
@@ -564,7 +564,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    fieldtuples, fieldtuplesStatus = FakeProfile.get_fieldtuples(person_id)
+                    fieldtuples, fieldtuplesStatus = FakeProfile.get_fieldtuples(person_id, json_data['task_id'])
                 else:
                     fieldtuples, fieldtuplesStatus = get_fieldtuples(person_id)
                 if fieldtuples:
@@ -591,7 +591,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    author_aff_pubs, author_aff_pubsStatus = FakeProfile.get_institute_pubs(person_id)
+                    author_aff_pubs, author_aff_pubsStatus = FakeProfile.get_institute_pubs(person_id, json_data['task_id'])
                 else:
                     author_aff_pubs, author_aff_pubsStatus = get_institute_pubs(person_id)
 
@@ -616,7 +616,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                     bibauthorid_data = {'is_baid': True, 'pid': person_id, 'cid': person_link}
 
                 if json_data.has_key('fake'):
-                    coauthors, coauthorsStatus = FakeProfile.get_coauthors(person_id)
+                    coauthors, coauthorsStatus = FakeProfile.get_coauthors(person_id, json_data['task_id'])
                 else:
                     coauthors, coauthorsStatus = get_coauthors(person_id)
                 if not coauthors:
@@ -636,8 +636,8 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if 'fake' in json_data:
-                    citation_data, cache_status = FakeProfile.get_summarize_records(person_id)
-                    records, records_cache_status = FakeProfile.get_pubs(person_id)
+                    citation_data, cache_status = FakeProfile.get_summarize_records(person_id, json_data['task_id'])
+                    records, records_cache_status = FakeProfile.get_pubs(person_id, json_data['task_id'])
                 else:
                     citation_data, cache_status = get_summarize_records(person_id)
                     records, records_cache_status = get_pubs(person_id)
@@ -679,7 +679,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    pubs_per_year, pubs_per_yearStatus = FakeProfile.get_pubs_per_year(person_id)
+                    pubs_per_year, pubs_per_yearStatus = FakeProfile.get_pubs_per_year(person_id, json_data['task_id'])
                 else:
                     pubs_per_year, pubs_per_yearStatus = get_pubs_per_year(person_id)
                 if not pubs_per_year:
@@ -735,7 +735,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 person_id = json_data['personId']
 
                 if json_data.has_key('fake'):
-                    collab, collabStatus = FakeProfile.get_collabtuples(person_id)
+                    collab, collabStatus = FakeProfile.get_collabtuples(person_id, json_data['task_id'])
                 else:
                     collab, collabStatus = get_collabtuples(person_id)
 
@@ -766,7 +766,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                     fake = json_data['fake']
 
                 if fake == 1:
-                    internal_pubs, internal_pubsStatus = FakeProfile.get_internal_publications(person_id)
+                    internal_pubs, internal_pubsStatus = FakeProfile.get_internal_publications(person_id, json_data['task_id'])
                 else:
                     internal_pubs, internal_pubsStatus = get_internal_publications(person_id)
 

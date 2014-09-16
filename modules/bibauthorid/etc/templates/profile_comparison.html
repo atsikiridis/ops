@@ -1,7 +1,7 @@
 {% extends "index.html" %}
 {% block content %}
 
-        <div data-box-pid="{{ person_id }}">
+        <div data-box-pid="{{ person_id }}" data-box-tid="{{ task_id }}">
             <!--Rows don't work for xs view, as the boxes' content won't fit.-->
             <div class="row">
                 <div class="col-lg-5">
@@ -24,7 +24,11 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if no_new %}
+                        {% block no_profile %}{% endblock %}
+                        {% else %}
                         {% block fake_personal_details %}{% endblock %}
+                        {% endif %}
                     </div>
                     </div>
                 </div></div>
@@ -37,7 +41,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_citations_summary %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -49,7 +55,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_name_variants %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -61,7 +69,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_affiliations %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -73,7 +83,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_collaborations %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -85,7 +97,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_publications %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -97,7 +111,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_publications_graph %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -109,7 +125,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_coauthors %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -121,7 +139,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_papers %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -133,7 +153,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_subject_categories %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>
@@ -145,7 +167,9 @@
                     </div>
                     <div class="col-sm-2 col-md-2 col-lg-2"></div>
                     <div class="col-sm-5 col-md-5 col-lg-5">
+                        {% if not no_new %}
                         {% block fake_frequent_keywords %}{% endblock %}
+                        {% endif %}
                     </div>
                 </div></div>
             </div>

@@ -1888,6 +1888,7 @@ $(document).ready(function() {
           displayLoading;
 
       this.pid = $( "div[data-box-pid]" ).data( "boxPid" );
+      this.task_id = $( "div[data-box-tid]" ).data( "boxTid");
       this.boxes = _.toArray( $( "div[data-box-source]" ) );
       this.hooks = {};
 
@@ -2084,6 +2085,10 @@ $(document).ready(function() {
             fake = $box.data( "fake" );
 
         var jsonDict = { personId: obj.pid };
+
+        if (obj.task_id) {
+            jsonDict.task_id = obj.task_id
+        }
 
         if (undefined != fake) {
             jsonDict.fake = fake;
