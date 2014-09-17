@@ -664,7 +664,7 @@ def _get_veryfy_my_pubs_list_link_bai(person_id):
 def _get_kwtuples_bai(pubs, person_id):
     '''
     Returns the list of keyword tuples for given personid.
-    @param person_id: int person id
+    @param person_id: int/string person id
     '''
     tup = get_most_popular_field_values(pubs,
                             (CFG_WEBAUTHORPROFILE_KEYWORD_TAG), count_repetitive_values=True)
@@ -676,7 +676,7 @@ def _get_fieldtuples_bai(pubs, person_id):
 def _get_fieldtuples_bai_tup(pubs, person_id):
     '''
     Returns the fieldcode tuples for given personid.
-    @param person_id: int person id
+    @param person_id: int/string person id
     '''
     tup = get_most_popular_field_values(pubs,
                             CFG_WEBAUTHORPROFILE_FIELDCODE_TAG, count_repetitive_values=True)
@@ -688,7 +688,7 @@ def _get_fieldtuples_bai_tup(pubs, person_id):
 def _get_collabtuples_bai(pubs, person_id):
     '''
     Returns the list keyword tuples for given personid.
-    @param person_id: int person id
+    @param person_id: int/string person id
     '''
 
     tup = get_most_popular_field_values(pubs,

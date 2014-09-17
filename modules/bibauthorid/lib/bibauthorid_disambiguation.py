@@ -379,6 +379,9 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         /author/disambiguation/1 etc.
         """
 
+        if not CFG_BIBAUTHORID_ENABLED:
+            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+
         if len(path) == 0:
             return WebAuthorDisambiguationInfo(component), path
         elif len(path) == 2 and path[0] == 'profile':
@@ -542,10 +545,7 @@ class FakeProfile(WebInterfaceDirectory):
 
         recids = cls._get_pubs_from_matching(person_id, task_id)
 
-        try:
-            tup = _get_collabtuples_bai(recids, person_id)
-        except TypeError:
-            tup = []
+        tup = _get_collabtuples_bai(recids, person_id)
 
         return tup, True
 
@@ -557,10 +557,7 @@ class FakeProfile(WebInterfaceDirectory):
 
         pubs = cls._get_pubs_from_matching(person_id, task_id)
 
-        try:
-            return _get_fieldtuples_bai_tup(pubs, person_id), True
-        except TypeError:
-            return [], True
+        return _get_fieldtuples_bai_tup(pubs, person_id), True
 
     @classmethod
     def get_summarize_records(cls, person_id, task_id):
@@ -614,10 +611,7 @@ class FakeProfile(WebInterfaceDirectory):
 
         pubs = cls._get_pubs_from_matching(person_id, task_id)
 
-        try:
-            return _get_kwtuples_bai(pubs, person_id), True
-        except TypeError:
-            return [], True
+        return _get_kwtuples_bai(pubs, person_id), True
 
     @classmethod
     def get_pubs(cls, person_id, task_id):
@@ -659,7 +653,6 @@ class FakeProfile(WebInterfaceDirectory):
                 helper_dict[(bibref_table, bibref_value)][1].append(bibrec)
             else:
                 bibref = (int(bibref_table), bibref_value, )
-                print bibref
                 name = get_name_from_bibref(bibref)
                 helper_dict[(bibref_table, bibref_value)] = \
                         [name, [bibrec]]
