@@ -69,11 +69,11 @@ from invenio.webauthorprofile_corefunctions import _get_collabtuples_bai
 from invenio.webauthorprofile_corefunctions import _get_pubs_per_year_dictionary
 from invenio.webauthorprofile_corefunctions import _get_kwtuples_bai
 from invenio.webauthorprofile_corefunctions import _get_fieldtuples_bai_tup
-from invenio.webauthorprofile_corefunctions import _get_summarize_records
 
 from invenio.webauthorprofile_config import deserialize
 
 from invenio.webinterface_handler import wash_urlargd, WebInterfaceDirectory
+import invenio.webinterface_handler_config as apache
 
 from invenio.webpage import page
 
@@ -384,6 +384,8 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         elif len(path) == 2 and path[0] == 'profile':
             #in form of /author/disambiguation/(task_id)/profile/(pid)
             return WebAuthorProfileComparison(path[1], component), []
+        else:
+            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
 
 
 class WebAuthorProfileComparison(WebInterfaceDirectory):
@@ -426,6 +428,9 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
         except ValueError:
             #TO DO
             full_name = self.person
+            computed_matching = get_disambiguation_matching(self.person,
+                                                            int(self.task_id))
+            content['no_old'] = True
 
         page_title = "Disambiguation profile comparison for %s" % full_name
         web_page = WebProfilePage('fake_profile', page_title)
@@ -462,11 +467,11 @@ class WebAuthorProfileComparison(WebInterfaceDirectory):
 #We need also to pass task_id to memoizer. If not, a curator might see a
 #fake profile from the previous algorithm run.
 
-def get_disambiguation_matching_no_m(person, task_id):
+def no_m_disambiguation_matching(person, task_id):
     return _get_disambiguation_matching(person)
 
 get_disambiguation_matching = \
-        memoized(get_disambiguation_matching_no_m)
+        memoized(no_m_disambiguation_matching)
 
 def _get_disambiguation_matching(person):
 
@@ -485,8 +490,8 @@ def _get_disambiguation_matching(person):
         return get_clusters(personid=False, cluster=person)
 
     clusters = get_matched_clusters(name)
-    return [sigs for sigs, pid in clusters if pid == int(person)]
-
+    result = [sigs for sigs, pid in clusters if pid == int(person)]
+    return result[0]
 
 class FakeProfile(WebInterfaceDirectory):
 
@@ -537,7 +542,10 @@ class FakeProfile(WebInterfaceDirectory):
 
         recids = cls._get_pubs_from_matching(person_id, task_id)
 
-        tup = _get_collabtuples_bai(recids, person_id)
+        try:
+            tup = _get_collabtuples_bai(recids, person_id)
+        except TypeError:
+            tup = []
 
         return tup, True
 
@@ -549,7 +557,10 @@ class FakeProfile(WebInterfaceDirectory):
 
         pubs = cls._get_pubs_from_matching(person_id, task_id)
 
-        return _get_fieldtuples_bai_tup(pubs, person_id), True
+        try:
+            return _get_fieldtuples_bai_tup(pubs, person_id), True
+        except TypeError:
+            return [], True
 
     @classmethod
     def get_summarize_records(cls, person_id, task_id):
@@ -590,7 +601,7 @@ class FakeProfile(WebInterfaceDirectory):
         result = {}
 
         if matching:
-            for paper in matching[0]:
+            for paper in matching:
                 int_paper = int(paper[2])
                 result[int_paper] = get_title_of_paper(int_paper)
 
@@ -603,7 +614,11 @@ class FakeProfile(WebInterfaceDirectory):
 
         pubs = cls._get_pubs_from_matching(person_id, task_id)
 
-        return _get_kwtuples_bai(pubs, person_id), True
+        try:
+            return _get_kwtuples_bai(pubs, person_id), True
+        except TypeError:
+            return [], True
+
     @classmethod
     def get_pubs(cls, person_id, task_id):
 
@@ -639,15 +654,15 @@ class FakeProfile(WebInterfaceDirectory):
                  }
         helper_dict = {}
 
-        for tab in matching:
-            for (bibref_table, bibref_value, bibrec) in tab:
-                if (bibref_table, bibref_value) in helper_dict:
-                    helper_dict[(bibref_table, bibref_value)][1].append(bibrec)
-                else:
-                    bibref = (int(bibref_table), bibref_value, )
-                    name = get_name_from_bibref(bibref)
-                    helper_dict[(bibref_table, bibref_value)] = \
-                            [name, [bibrec]]
+        for (bibref_table, bibref_value, bibrec) in matching:
+            if (bibref_table, bibref_value) in helper_dict:
+                helper_dict[(bibref_table, bibref_value)][1].append(bibrec)
+            else:
+                bibref = (int(bibref_table), bibref_value, )
+                print bibref
+                name = get_name_from_bibref(bibref)
+                helper_dict[(bibref_table, bibref_value)] = \
+                        [name, [bibrec]]
 
         longest_name = ''
         for _, value in helper_dict.iteritems():
@@ -685,7 +700,7 @@ class FakeProfile(WebInterfaceDirectory):
         """
 
         try:
-            matching = get_disambiguation_matching(person_id, task_id)[0]
+            matching = get_disambiguation_matching(person_id, task_id)
         except IndexError:
             #TO DO
             matching = ()
