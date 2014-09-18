@@ -10,6 +10,7 @@ from invenio.bibauthorid_config import CFG_BIBAUTHORID_ENABLED, \
 from invenio.bibauthorid_dbinterface import update_disambiguation_task_status
 from invenio.bibauthorid_dbinterface import \
     get_papers_per_disambiguation_cluster
+from invenio.bibauthorid_dbinterface import get_papers_of_author
 from invenio.bibauthorid_dbinterface import get_status_of_task_by_task_id
 from invenio.bibauthorid_dbinterface import add_new_disambiguation_task
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_data
@@ -34,13 +35,13 @@ from invenio.bibauthorid_dbinterface import get_name_from_bibref
 from invenio.bibauthorid_dbinterface import get_authors_of_paper
 from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
 from invenio.bibauthorid_dbinterface import get_title_of_paper
+from invenio.bibauthorid_dbinterface import get_collaborations_for_paper
 
 from invenio.bibauthorid_general_utils import memoized
 
 from invenio.bibauthorid_merge import get_matched_claims
 from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
-from invenio.bibauthorid_merge import get_new_clusters
 from invenio.bibauthorid_merge import \
     merge_dynamic as merge_disambiguation_results
 from invenio.bibauthorid_merge import get_matched_clusters
@@ -56,7 +57,8 @@ from invenio.bibsched import bibsched_send_signal
 
 from invenio.bibtask import task_low_level_submission
 
-from invenio.config import CFG_SITE_LANG, CFG_BASE_URL
+from invenio.config import CFG_SITE_LANG
+from invenio.config import CFG_BASE_URL
 
 from invenio.intbitset import intbitset
 
@@ -150,32 +152,70 @@ class MonitoredDisambiguation(object):
 
         avg_p_title = 'Number of Papers per Disambiguation Cluster'
         papers_per_cluster = get_papers_per_disambiguation_cluster(self._name)
-        stats[avg_p_title] = papers_per_cluster
+        stats[avg_p_title] = round(papers_per_cluster, 2)
 
         ratio_claims_title = 'Average Ratio of Claimed and Unclaimed Papers'
         ratio_claims = get_average_ratio_of_claims(self._name)
-        stats[ratio_claims_title] = ratio_claims
+        stats[ratio_claims_title] = round(ratio_claims, 2)
 
         preserved_claims, total_claims = get_matched_claims(self._name)
         stats['Number of Preserved Claims'] = preserved_claims
         stats['Number of Total Claims'] = total_claims
-        percentage = preserved_claims / float(total_claims) * 100
+        try:
+            percentage = preserved_claims / float(total_claims) * 100
+        except:
+            percentage = 100
         stats['Percentage of Preserved Claims'] = '%s %%' % percentage
 
         return stats
 
     def _calculate_rankings(self):
 
+        task_name = self._task_id
         rankings = dict()
 
-        most_mod_title = 'Most modified profiles'
-        rankings[most_mod_title] = get_most_modified_profs(self._name)
+        all_modified_profiles = get_most_modified_profs(self._name)
 
-        rankings['Unmodified Profiles'] = get_unmodified_profiles(self._name)
+        unmodified_profiles = get_unmodified_profiles(self._name)
 
-        rankings['Abandoned Profiles'] = get_abandoned_profiles(self._name)
+        abandoned_profiles = get_abandoned_profiles(self._name)
 
-        rankings['New clusters'] = get_new_clusters(self._name)  # Work, None for now
+        all_clusters = get_matched_clusters(self._name)
+
+        for name, changes in all_modified_profiles:
+
+            clusters = get_disambiguation_matching(name, task_name)
+
+            pid = ''
+
+            first_cluster = clusters[0]
+            for bibrefs, _pid in all_clusters:
+                if not pid:
+                    for bibref in bibrefs:
+                        if first_cluster == bibref:
+                            pid = _pid
+                            break
+
+
+            if pid in unmodified_profiles:
+                status = 'unmodified'
+            elif pid == '':
+                status = 'new cluster'
+            else:
+                status = 'modified'
+
+            rankings[(name, pid)] = {
+                'status' : status,
+                'changes' : changes
+            }
+
+        for profile in abandoned_profiles:
+            papers = get_papers_of_author(profile)
+            rankings[('', profile)] = {
+                'status' : 'abandoned',
+                #All papers were removed from this poor guy
+                'changes': len(papers)
+            }
 
         return rankings
 
@@ -329,6 +369,10 @@ class WebAuthorDashboard(WebInterfaceDirectory):
 
 class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
 
+    """Handles /author/disambiguation/(task_id) - an overwiew of a tortoise
+    results.
+    """
+
     def __init__(self, bibsched_id=None):
         if not CFG_BIBAUTHORID_ENABLED:
             return
@@ -362,8 +406,14 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
             update_disambiguation_task_status(self._task_id, 'MERGED')
 
         merged = get_status_of_task_by_task_id(self._task_id) == 'MERGED'
+
+        disambiguate_suburl = \
+                '/author/disambiguation/%s/profile/' % self._task_id
+
         content = {'statistics': stats,
-                   'merged': merged}
+                   'merged': merged,
+                   'fake_profile_base_url' : CFG_BASE_URL + disambiguate_suburl
+                  }
 
         return page(title=page_title,
                     metaheaderadd=web_page.get_head().encode('utf-8'),
@@ -380,7 +430,7 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
         """
 
         if not CFG_BIBAUTHORID_ENABLED:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise apache.SERVER_RETURN(apache.HTTP_NOT_FOUND)
 
         if len(path) == 0:
             return WebAuthorDisambiguationInfo(component), path
@@ -388,7 +438,7 @@ class WebAuthorDisambiguationInfo(WebInterfaceDirectory):
             #in form of /author/disambiguation/(task_id)/profile/(pid)
             return WebAuthorProfileComparison(path[1], component), []
         else:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise apache.SERVER_RETURN(apache.HTTP_NOT_FOUND)
 
 
 class WebAuthorProfileComparison(WebInterfaceDirectory):
@@ -493,7 +543,12 @@ def _get_disambiguation_matching(person):
         return get_clusters(personid=False, cluster=person)
 
     clusters = get_matched_clusters(name)
+
     result = [sigs for sigs, pid in clusters if pid == int(person)]
+
+    if not len(result):
+        return []
+
     return result[0]
 
 class FakeProfile(WebInterfaceDirectory):
@@ -513,14 +568,15 @@ class FakeProfile(WebInterfaceDirectory):
         personids = {}
         matching = cls._get_pubs_from_matching(person_id, task_id)
         for match in matching:
-            authors = get_authors_of_paper(match)
-            for author in authors:
-                if author in names:
-                    continue
-                if author in personids:
-                    personids[author] += 1
-                else:
-                    personids[author] = 1
+            if not get_collaborations_for_paper(match):
+                authors = get_authors_of_paper(match)
+                for author in authors:
+                    if author in names:
+                        continue
+                    if author in personids:
+                        personids[author] += 1
+                    else:
+                        personids[author] = 1
 
         coauthors = []
 

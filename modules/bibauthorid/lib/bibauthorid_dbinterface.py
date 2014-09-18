@@ -5049,8 +5049,7 @@ def get_number_of_profiles(name):
     """
     (aidPERSONIDPAPERS, after disambiguation)
     """
-    real_profs = len(get_authors_by_surname(name, limit_to_recid=True,
-                                            use_m_name=True))
+    real_profs = len(get_authors_by_surname(name, limit_to_recid=True))
     disambiguated_profs = len(get_disambiguation_profiles(name))
     return real_profs, disambiguated_profs
 
@@ -5077,11 +5076,12 @@ def get_most_modified_disambiguated_profiles(name, ascending=False):  # remove a
     main_query = """select distinct personid, count(bibrec) as total
                     from aidRESULTS where personid like %s group by personid"""
     if ascending:
-        order_query = 'order by count(bibrec) asc limit 10'
+        order_query = 'order by count(bibrec) asc'
     else:
-        order_query = 'order by count(bibrec) desc limit 10'
-    return run_sql(" ".join([main_query, order_query]),
+        order_query = 'order by count(bibrec) desc'
+    aid_result_result = run_sql(" ".join([main_query, order_query]),
                    (name+'.%',))
+    return aid_result_result
 
 
 def get_ratios_of_claims(name):
@@ -5110,7 +5110,6 @@ def get_ratios_of_claims(name):
                 ratios.append((uncl[0], ratio))
                 break
     return ratios
-
 
 def get_average_ratio_of_claims(name):
     ratios = [ratio for _, ratio in get_ratios_of_claims(name)]

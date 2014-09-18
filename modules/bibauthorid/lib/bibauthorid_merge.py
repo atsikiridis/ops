@@ -444,15 +444,6 @@ def _get_unmatched_clusters(best_match_matrix, results):
     return frozenset(xrange(len(results))) - frozenset(
         imap(itemgetter(0), [x for x in best_match_matrix if x[2] > 0]))
 
-
-def get_new_clusters(name):
-    pids_in_aidpersonidpapers = get_authors_by_surname(name,
-                                                       limit_to_recid=True)
-    pids_in_aidpersonidpapers = set(p[0] for p in pids_in_aidpersonidpapers)
-    results = get_signatures_for_merge_cluster_by_surname(name)
-    best_match, old_pids = get_merge_matching_matrix_and_pids(results)
-
-
 def get_abandoned_profiles(name):
     """
         For a given surname, returns the personids that are not included in

@@ -1882,6 +1882,19 @@ jQuery(function($) {
 
 $(document).ready(function() {
 
+    //disambiguation table options
+    $('#tortoiseTable').dataTable( {
+        "bLengthChange": false,
+        "bFilter": false,
+        "iDisplayLength" : 10,
+        "oLanguage" : {
+            "oPaginate" : {
+                "sNext" : '<div class="btn btn-default">Next</div>',
+                "sPrevious" : '<div class="btn btn-default">Previous</div>'
+            }
+        }
+    } );
+
     var BoxLoader = function BoxLoader( num, minTime ) {
 
       var init, callbacks, boxStates, requestAllowed, dispatch, runHook,
@@ -2145,6 +2158,11 @@ $(document).ready(function() {
       "publications-list": function ( $box ) {
 
         $(".normal-pub-tabs a:first").tab('show');
+        MathJax.Hub.Queue( [ "Typeset", MathJax.Hub, $box.get(0) ] );
+
+      },
+      "fake-publications-list": function ( $box ) {
+
         MathJax.Hub.Queue( [ "Typeset", MathJax.Hub, $box.get(0) ] );
 
       },
