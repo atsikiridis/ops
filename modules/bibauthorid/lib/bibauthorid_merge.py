@@ -460,24 +460,6 @@ def get_abandoned_profiles(name):
 
     return pids_in_aidpersonidpapers - set(pids_in_aidresults)
 
-
-def get_unmodified_profiles(name):
-    results = get_signatures_for_merge_cluster_by_surname(name)
-    best_match, old_pids = get_merge_matching_matrix_and_pids(results)
-    matched = _get_matched_clusters(best_match, results, old_pids)
-
-    matched_per_pid = dict()
-    for sigs_per_pid in matched:
-        matched_per_pid[sigs_per_pid[1]] = [sig[2] for sig in sigs_per_pid[0]]
-
-    unmodified = set()
-    for pid in matched_per_pid.keys():
-        papers = [paper[0] for paper in get_papers_of_author(pid,
-                                                             include_rejected=True)]
-        if set(papers) == set(matched_per_pid[pid]):
-            unmodified.add(pid)
-    return unmodified
-
 def get_matched_claims(lname=None, inspect=None):
     '''
         Checks how many claims are violated in aidRESULTS.

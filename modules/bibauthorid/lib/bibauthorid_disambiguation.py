@@ -25,8 +25,7 @@ from invenio.bibauthorid_dbinterface import register_disambiguation_statistics
 from invenio.bibauthorid_dbinterface import get_number_of_profiles
 from invenio.bibauthorid_dbinterface import get_disambiguation_task_stats
 from invenio.bibauthorid_dbinterface import get_average_ratio_of_claims
-from invenio.bibauthorid_dbinterface import \
-    get_most_modified_disambiguated_profiles as get_most_modified_profs
+from invenio.bibauthorid_dbinterface import get_profiles_with_changes
 from invenio.bibauthorid_dbinterface import get_bibsched_task_id_by_task_name
 from invenio.bibauthorid_dbinterface import get_cluster_info_by_task_id
 from invenio.bibauthorid_dbinterface import get_clusters
@@ -40,7 +39,6 @@ from invenio.bibauthorid_dbinterface import get_collaborations_for_paper
 from invenio.bibauthorid_general_utils import memoized
 
 from invenio.bibauthorid_merge import get_matched_claims
-from invenio.bibauthorid_merge import get_unmodified_profiles
 from invenio.bibauthorid_merge import get_abandoned_profiles
 from invenio.bibauthorid_merge import \
     merge_dynamic as merge_disambiguation_results
@@ -174,9 +172,7 @@ class MonitoredDisambiguation(object):
         task_name = self._task_id
         rankings = dict()
 
-        all_modified_profiles = get_most_modified_profs(self._name)
-
-        unmodified_profiles = get_unmodified_profiles(self._name)
+        all_modified_profiles = get_profiles_with_changes(self._name)
 
         abandoned_profiles = get_abandoned_profiles(self._name)
 
