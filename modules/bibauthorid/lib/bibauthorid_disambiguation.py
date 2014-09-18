@@ -183,26 +183,32 @@ class MonitoredDisambiguation(object):
             clusters = get_disambiguation_matching(name, task_name)
 
             pid = ''
+            bibrefs = []
 
             first_cluster = clusters[0]
-            for bibrefs, _pid in all_clusters:
+            for _bibrefs, _pid in all_clusters:
                 if not pid:
-                    for bibref in bibrefs:
+                    for bibref in _bibrefs:
                         if first_cluster == bibref:
                             pid = _pid
+                            bibrefs = _bibrefs
                             break
 
+            truly_changed = changes
+            if pid:
+                if bibrefs:
+                    papers = get_papers_of_author(pid)
+                    bibrecs = { (x,) for _, _, x in bibrefs }
+                    truly_changed = len(bibrecs.symmetric_difference(papers))
 
-            if pid in unmodified_profiles:
-                status = 'unmodified'
-            elif pid == '':
+            if pid == '':
                 status = 'new cluster'
             else:
                 status = 'modified'
 
             rankings[(name, pid)] = {
                 'status' : status,
-                'changes' : changes
+                'changes' : truly_changed
             }
 
         for profile in abandoned_profiles:

@@ -5069,20 +5069,13 @@ def get_papers_per_disambiguation_cluster(name):
     return no_of_papers / float(len(get_disambiguation_profiles(name)))
 
 
-def get_profiles_with_changes(name, ascending=False):  # remove ascending... add a seperate function
+def get_profiles_with_changes(name):
 
-    """
-    TODO most changed, not biggest!  ON AIDPESONIDPAPERS and MATCHED
-    """
     main_query = """select distinct personid, count(bibrec) as total
-                    from aidRESULTS where personid like %s group by personid"""
+                    from aidRESULTS where personid like '%s' group
+                    by personid""" % (name+'.%',)
 
-    if ascending:
-        order_query = 'order by count(bibrec) asc'
-    else:
-        order_query = 'order by count(bibrec) desc'
-    aid_result_result = run_sql(" ".join([main_query, order_query]),
-                   (name+'.%',))
+    aid_result_result = run_sql(main_query)
     return aid_result_result
 
 
