@@ -1018,11 +1018,16 @@ def get_coauthors_of_author(pid, excluding_recs=None):  # get_coauthor_pids
     @type excluding_recs: list [int,]
     '''
     recs = get_confirmed_papers_of_author(pid)
+
+    return get_coauthors_from_paperrecs(pid, recs, excluding_recs)
+
+def get_coauthors_from_paperrecs(pid, recs, excluding_recs=None, exclude_author=True):
+
     if excluding_recs:
-	exclude_set = set(excluding_recs)
+        exclude_set = set(excluding_recs)
         recs = set(recs) - exclude_set
     else:
-	exclude_set = set()
+        exclude_set = set()
 
     if not recs:
         return list()
@@ -1032,7 +1037,12 @@ def get_coauthors_of_author(pid, excluding_recs=None):  # get_coauthor_pids
                    'where bibrec in %s '
                    'and flag > -2' % recs_sqlstr)
 
-    pids = set([(int(p), int(r)) for p, r in pids if (int(p) != int(pid) and int(r) not in exclude_set)])
+    if exclude_author:
+        pids = set([(int(p), int(r)) for p, r in pids if \
+                (int(p) != int(pid) and \
+                 int(r) not in exclude_set)])
+    else:
+        pids = set([(int(p), int(r)) for p, r in pids if int(r) not in exclude_set])
     pids = sorted([p for p, r in pids])
     pids = groupby(pids)
     pids = [(key, len(list(val))) for key, val in pids]

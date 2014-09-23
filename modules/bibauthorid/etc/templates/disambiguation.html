@@ -1,6 +1,6 @@
 {% extends "index.html" %}
 {% block content %}
-        <div class="col-md-offset-1 col-md-5">
+        <div class="col-md-offset-1 col-md-4">
             <div class="well inspire-well">
                 <div class="bai-box-title">
                  <span>Statistics</span>
@@ -33,7 +33,7 @@
             </div>
         </div>
 
-        <div class="col-md-5">
+        <div class="col-md-6">
             <div class="well inspire-well">
                 <div class="bai-box-title">
                   <span>Profiles</span>
@@ -42,27 +42,31 @@
                 <table id="tortoiseTable" class="table table-striped table-bordered table-hover tortoise">
                 <thead>
                   <tr>
-                      <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Person ID</th>
                       <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Name</th>
                       <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Status</th>
-                      <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Nr of changes</th>
+                      <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Nr of papers (after)</th>
+                      <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Nr of papers (before)</th>
+                      <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Added</th>
+                      <th><span class="glyphicon glyphicon-sort-by-alphabet"></span> Removed</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for key, value in statistics['rankings'].iteritems() %}
                   <tr>
-                    <td><a href={{ '%s%s' % (fake_profile_base_url, key[1]) }}>{{ key[1] }}</a></td>
+                    <td><a href={{ '%s%s' % (fake_profile_base_url, key[1]) }}>{{ value['cname'] }}</a></td>
                     <td>
                       <!-- A hack for sorter -->
                       <div class={{ 'key[0]' }}>
                       {% if not key[1] %}
-                      <a href={{ '%s%s' % (fake_profile_base_url, key[0]) }}>{{ key[0] }}</a>
+                      <a href={{ '%s%s' % (fake_profile_base_url, key[0]) }}>{{ value['status'] }}</a>
                       {% else %}
-                      <a href={{ '%s%s' % (fake_profile_base_url, key[1]) }}>{{ key[0] }}</a>
+                      <a href={{ '%s%s' % (fake_profile_base_url, key[1]) }}>{{ value['status'] }}</a>
                       {% endif %}
                     </td>
-                    <td>{{ value['status'] }}</td>
-                    <td>{{ value['changes'] }}</td>
+                    <td>{{ value['after_disambiguation'] }}</td>
+                    <td>{{ value['before_disambiguation'] }}</td>
+                    <td>{{ value['added'] }}</td>
+                    <td>{{ value['removed'] }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>

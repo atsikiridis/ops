@@ -35,6 +35,7 @@ from invenio.bibauthorid_dbinterface import get_authors_of_paper
 from invenio.bibauthorid_dbinterface import get_pid_to_canonical_name_map
 from invenio.bibauthorid_dbinterface import get_title_of_paper
 from invenio.bibauthorid_dbinterface import get_collaborations_for_paper
+from invenio.bibauthorid_dbinterface import get_coauthors_from_paperrecs
 
 from invenio.bibauthorid_general_utils import memoized
 
@@ -184,6 +185,7 @@ class MonitoredDisambiguation(object):
 
             pid = ''
             bibrefs = []
+            papers = []
 
             first_cluster = clusters[0]
             for _bibrefs, _pid in all_clusters:
@@ -194,21 +196,31 @@ class MonitoredDisambiguation(object):
                             bibrefs = _bibrefs
                             break
 
-            truly_changed = changes
+            truly_changed = added = changes
+            bibrecs = { (x,) for _, _, x in bibrefs }
+            papers = get_papers_of_author(pid)
+            removed = 0
+
             if pid:
                 if bibrefs:
-                    papers = get_papers_of_author(pid)
-                    bibrecs = { (x,) for _, _, x in bibrefs }
-                    truly_changed = len(bibrecs.symmetric_difference(papers))
+                    removed = len(papers.difference(bibrecs))
+                    added = len(bibrecs.difference(papers))
+                    truly_changed = removed + added
 
             if pid == '':
                 status = 'new cluster'
+            elif truly_changed == 0:
+                status = 'unmodified'
             else:
                 status = 'modified'
 
             rankings[(name, pid)] = {
                 'status' : status,
-                'changes' : truly_changed
+                'removed' : removed,
+                'added' : added,
+                'cname' : web_api.get_person_redirect_link(pid) if pid else '',
+                'after_disambiguation' : len(bibrecs),
+                'before_disambiguation' :  len(papers)
             }
 
         for profile in abandoned_profiles:
@@ -216,7 +228,11 @@ class MonitoredDisambiguation(object):
             rankings[('', profile)] = {
                 'status' : 'abandoned',
                 #All papers were removed from this poor guy
-                'changes': len(papers)
+                'removed': len(papers),
+                'added' : 0,
+                'cname' : web_api.get_person_redirect_link(profile),
+                'after_disambiguation' : 0,
+                'before_disambiguation' : len(papers)
             }
 
         return rankings
@@ -564,21 +580,18 @@ class FakeProfile(WebInterfaceDirectory):
         """Fetches coauthor data from aidRESULTS table.
         """
 
+        pubs = cls._get_pubs_from_matching(person_id, task_id)
+
+        exclude_recs = []
+        for pub in pubs:
+            if get_collaborations_for_paper(pub):
+                exclude_recs.append(pub)
+
+        personids = get_coauthors_from_paperrecs(person_id, pubs, exclude_recs,
+            exclude_author = isinstance(person_id, int))
+
         names = cls.get_person_names_dicts(person_id,
                                            task_id)[0]['db_names_dict']
-
-        personids = {}
-        matching = cls._get_pubs_from_matching(person_id, task_id)
-        for match in matching:
-            if not get_collaborations_for_paper(match):
-                authors = get_authors_of_paper(match)
-                for author in authors:
-                    if author in names:
-                        continue
-                    if author in personids:
-                        personids[author] += 1
-                    else:
-                        personids[author] = 1
 
         coauthors = []
 
@@ -588,9 +601,9 @@ class FakeProfile(WebInterfaceDirectory):
             try:
                 cname = cname_map[person[0]]
             except KeyError:
-                cname = str(person)
+                cname = str(person[0])
             lname = str(cname)
-            paps = personids[person]
+            paps = person[1]
             if paps:
                 coauthors.append((cname, lname, paps))
         return coauthors, True

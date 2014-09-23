@@ -185,6 +185,7 @@ class WebAuthorPages(WebInterfaceDirectory):
             - /author/profile/100:5522,1431 shows the page of the author
               identified by the bibrefrec: '100:5522,1431'
         '''
+
         if not component in self._exports:
             return WebAuthorPages(component), path
 
@@ -712,13 +713,18 @@ class WebAuthorPages(WebInterfaceDirectory):
                     context['fake'] = True
 
                 context.update({
-                    'cname': webapi.get_canonical_id_from_person_id(person_id),
                     'link_to_record': ulevel == "admin",
                     'hepnames_link': "%s/%s/" % (CFG_BASE_URL, "record"),
                     'new_record_link': 'http://slac.stanford.edu/spires/hepnames/additions.shtml',
                     'update_link': "http://inspirehep.net/person/update?IRN=",
                     'profile_link': "%s/%s" % (CFG_BASE_URL, "author/profile/")
                 })
+
+                if isinstance(person_id, int):
+                    context['cname'] = webapi.get_canonical_id_from_person_id(person_id)
+                else:
+                    #Fake profile case
+                    context['cname'] = person_id
 
                 content = WebProfilePage.render_template('personal_details_box', context)
 
@@ -767,14 +773,26 @@ class WebAuthorPages(WebInterfaceDirectory):
 
                 if fake == 1:
                     internal_pubs, internal_pubsStatus = FakeProfile.get_internal_publications(person_id, json_data['task_id'])
+                    old_pubs, old_pubsStatus = get_internal_publications(person_id)
+                    common_set = set(internal_pubs).intersection(set(old_pubs))
+                    added_pubs = {k: v for (k, v) in internal_pubs.iteritems() if k not in common_set }
+                    removed_pubs = {k: v for (k, v) in old_pubs.iteritems() if k not in common_set }
                 else:
                     internal_pubs, internal_pubsStatus = get_internal_publications(person_id)
+                    added_pubs = None
+                    removed_pubs = None
 
                 external_pubs, external_pubsStatus = get_external_publications(person_id)
                 datasets_pubs, datasets_pubsStatus = get_datasets(person_id)
 
                 if internal_pubs is not None and internal_pubsStatus is True:
-                    internal_pubs = sorted([(title, get_inspire_record_url(recid), recid) for recid, title
+                    if fake == 1:
+                        added_pubs = sorted([(title, get_inspire_record_url(recid), recid) for recid, title
+                                            in added_pubs.iteritems()], key=lambda x: x[2], reverse=True)
+                        removed_pubs = sorted([(title, get_inspire_record_url(recid), recid) for recid, title
+                                            in removed_pubs.iteritems()], key=lambda x: x[2], reverse=True)
+                    else:
+                        internal_pubs = sorted([(title, get_inspire_record_url(recid), recid) for recid, title
                                             in internal_pubs.iteritems()], key=lambda x: x[2], reverse=True)
                     if fake == -1:
                         internal_pubs = internal_pubs[0:10]
@@ -822,6 +840,9 @@ class WebAuthorPages(WebInterfaceDirectory):
                         'html': WebProfilePage.render_publications_list_content({
                             "internal_pubs": internal_pubs,
                             "base_url": CFG_BASE_URL,
+                            "added_pubs" : added_pubs,
+                            "removed_pubs" : removed_pubs,
+                            "fake" : fake
                         })
                     }
                 else:

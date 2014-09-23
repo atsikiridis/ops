@@ -1,7 +1,30 @@
-{% if not internal_pubs %}
-<h4>No publications.</h4>
+{% if fake == 1 %}
+	<h4>Added publications:</h4>
+	{% if not added_pubs %}
+	No publications.
+	{% endif %}
+	<ol>
+	{% for title, url, recid in added_pubs %}
+		<div class="addpubs">
+		<li><a href="{{ url }}">{{ '%s%s' % (base_url, url) if not title or title == '' else title }}</a></li>{% endfor %}
+		</div>
+	</ol>
+	<h4>Removed publications:</h4>
+	{% if not removed_pubs %}
+	No publications.
+	{% endif %}
+	<ol>
+	{% for title, url, recid in removed_pubs %}
+		<div class="rempubs">
+		<li><a href="{{ url }}">{{ '%s%s' % (base_url, url) if not title or title == '' else title }}</a></li>{% endfor %}
+		</div>
+	</ol>
+{% else %}
+	{% if not internal_pubs %}
+	<h4>No publications.</h4>
+	{% endif %}
+	<ol>
+	{% for title, url, recid in internal_pubs %}
+		<li><a href="{{ url }}">{{ '%s%s' % (base_url, url) if not title or title == '' else title }}</a></li>{% endfor %}
+	</ol>
 {% endif %}
-<ol>
-{% for title, url, recid in internal_pubs %}
-    <li><a href="{{ url }}">{{ '%s%s' % (base_url, url) if not title or title == '' else title }}</a></li>{% endfor %}
-</ol>

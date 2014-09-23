@@ -1886,7 +1886,7 @@ $(document).ready(function() {
     $('#tortoiseTable').dataTable( {
         "bLengthChange": false,
         "bFilter": false,
-        "iDisplayLength" : 10,
+        "iDisplayLength" : 100,
         "oLanguage" : {
             "oPaginate" : {
                 "sNext" : '<div class="btn btn-default">Next</div>',
