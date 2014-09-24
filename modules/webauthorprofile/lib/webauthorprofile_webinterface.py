@@ -623,7 +623,7 @@ class WebAuthorPages(WebInterfaceDirectory):
                 if not coauthors:
                     coauthors = dict()
 
-                json_response = {'status': coauthorsStatus, 'html': webauthorprofile_templates.tmpl_coauthor_box(bibauthorid_data, coauthors, ln='en', loading=not coauthorsStatus)}
+                json_response = {'status': coauthorsStatus, 'html': webauthorprofile_templates.tmpl_coauthor_box(bibauthorid_data, coauthors, ln='en', loading=not coauthorsStatus, fake=json_data.has_key('fake'))}
                 req.content_type = 'application/json'
                 return json.dumps(json_response)
 

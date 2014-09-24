@@ -498,7 +498,7 @@ class Template:
         affiliations_box = self.tmpl_print_searchresultbox('affiliations', line1, line2)
         return affiliations_box
 
-    def tmpl_coauthor_box(self, bibauthorid_data, authors, ln, loading=False):
+    def tmpl_coauthor_box(self, bibauthorid_data, authors, ln, loading=False, fake=False):
         _ = gettext_set_language(ln)
         content = ""
         if not loading:
@@ -523,7 +523,9 @@ class Template:
                     lnk = " <a href='%s/author/profile/%s'> %s </a> (" % (CFG_SITE_URL, canonical, name) + create_html_link(websearch_templates.build_search_url(p=rec_query), {}, "%s" % (frequency,),) + ')'
                     content.append("%s" % lnk)
                 return "<br>\n".join(content)
-
+            if fake:
+                content = "<b>Warning: </b>This list may contain also the author himself. Without the results applied it is not possible\
+                           to determine if we should get rid of this name from the coauthors list.<p></p>"
             content = self.print_collapsable_html(print_coauthors, sorted_coauthors, 'coauthors', content)
         else:
             content = self.loading_html()

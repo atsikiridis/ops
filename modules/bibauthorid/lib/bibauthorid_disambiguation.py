@@ -197,7 +197,7 @@ class MonitoredDisambiguation(object):
                             break
 
             truly_changed = added = changes
-            bibrecs = { (x,) for _, _, x in bibrefs }
+            bibrecs = {(x,) for _, _, x in bibrefs}
             papers = get_papers_of_author(pid)
             removed = 0
 
@@ -588,10 +588,8 @@ class FakeProfile(WebInterfaceDirectory):
                 exclude_recs.append(pub)
 
         personids = get_coauthors_from_paperrecs(person_id, pubs, exclude_recs,
-            exclude_author = isinstance(person_id, int))
-
-        names = cls.get_person_names_dicts(person_id,
-                                           task_id)[0]['db_names_dict']
+                                                 exclude_author=
+                                                 isinstance(person_id, int))
 
         coauthors = []
 
