@@ -356,7 +356,8 @@ class WebAuthorDashboard(WebInterfaceDirectory):
         if surname:
             threshold = argd['threshold']
             username = session['user_info']['nickname']
-            task = DisambiguationTask(cluster=surname, threshold=threshold,
+            task = DisambiguationTask(cluster=surname.lower(),
+                                      threshold=threshold,
                                       name_of_user=username)
             task.schedule()
 
