@@ -354,7 +354,7 @@ def reject_papers_from_author(pid, sigs_str, user_level=0):  # reject_papers_fro
         # it will be reassigned by tortoise) and reject it from the current person.
         current_pid, name = sig_exists[0]
         if current_pid == pid:
-            move_signature(sig, new_pid, force_claimed=True, set_unclaimed=True)
+            move_signature(sig, new_pid, force_claimed=False, set_unclaimed=True)
             pids_to_update.add(new_pid)
             add_signature((table, ref, rec), name, pid, flag=-2, user_level=user_level)
 
