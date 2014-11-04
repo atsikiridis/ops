@@ -20,7 +20,7 @@
 from invenio.dbquery import run_sql
 from invenio.bibauthorid_logutils import Logger
 
-depends_on = ['invenio_release_1_1_0']
+depends_on = ['invenio_2014_01_23_bibauthorid_rabbit_matchable_name_column']
 
 Logger.override_verbosity(True)
 
