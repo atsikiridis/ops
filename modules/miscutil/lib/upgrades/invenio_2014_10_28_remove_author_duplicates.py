@@ -45,8 +45,6 @@ def do_upgrade():
                                     'having count(*) > 1')
 
         if not duplicate_entries:
-            logger.log("""%s duplicate entries removed in
-                          aidPERSONIDPAPERS.""" % duplicates)
             break
 
         for entry in duplicate_entries:
@@ -65,6 +63,10 @@ def do_upgrade():
 
             duplicates += len(duplicate_entries)
 
+logger.log("""%s duplicate entries removed in
+              aidPERSONIDPAPERS.""" % duplicates)
+
 
 def estimate():
     return 1
+
